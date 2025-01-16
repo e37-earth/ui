@@ -1,14 +1,8 @@
-# Element UI
+# E37 UI
 
 ## Learn
-[elementhtml.dev](https://elementhtml.dev)
+[e37.earth](https://e37.earth)
 
-## Watch
-[@elementhtml on YouTube](https://www.youtube.com/@elementhtml)
-
-## Chat
-[@elementhtml on BlueSky](https://bsky.app/profile/elementhtml.dev)
-
-## Join
-[Discord](https://discord.gg/mxgTJ9Y3SP)
+## Socials
+[@e37.earth on BlueSky](https://bsky.app/profile/e37.earth)
 
