@@ -26,10 +26,12 @@ const branding = Object.freeze({
         tutorialLineBold: `${line} color: ${branding.accent1}; font-weight: bold; background-color: ${branding.accent2}17; padding-right: 3px; margin: 0;`,
         warning: `${block} color: ${branding.accent3}; font-weight: bold;`, // framework-specific warnings, for example: a directive which may not be doing what the developer expects it to
         welcome: `${block} padding-left: 23px; background-size: 17px; color: ${branding.accent1}; font-size: 17px; font-weight: bold; display: block; margin-bottom: 13px; border-bottom: 3px dashed ${branding.accent1};`
-    }), print = async (text, format) => {
+    }), print = async (text, format, mergeFields = {}) => {
         format ??= 'response'
         if (text[0] === '`' && text.endsWith('`')) text = await (await fetch(`${new URL(`../content/${text.slice(1, -1)}.txt`, import.meta.url)}`)).text()
         const blockFormat = formats[format], lineFormat = formats[`${format}Line`], lineBoldFormat = formats[`${format}LineBold`]
+        const mergeMap = new Map()
+        for (const mergeToken in mergeFields) mergeMap.set(new RegExp(mergeToken, 'g'), mergeFields[mergeToken])
         for (let i = 0, lines = text.split('\n'), line = lines[i], l = lines.length, firstLine = true; i < l; line = lines[++i]?.trim()) {
             if (!line) continue
             if (firstLine) {
@@ -64,6 +66,7 @@ const branding = Object.freeze({
                     useFormat ??= lineFormat
                     break
             }
+            for (const [mergePattern, mergeReplacer] of mergeMap) line = line.replace(mergePattern, mergeReplacer)
             console.log(`%c${line}`, useFormat)
         }
     }, fillers = [
@@ -219,7 +222,10 @@ const module = {
                 }
                 return getFiller()
             },
-            welcome: async function () { return await print('`dev/console/welcome`') },
+            welcome: async function (globalNamespaceKey) {
+                await print('`dev/console/welcome`', 'response', { LIBRARYSCOPE: globalNamespaceKey ? `window.${globalNamespaceKey}.E37` : 'window.E37' })
+                console.log(globalNamespaceKey ? window[globalNamespaceKey] : window.E37)
+            },
         }
     },
 

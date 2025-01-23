@@ -279,7 +279,7 @@ const UI = Object.defineProperties({}, {
         }
     },
 
-    Dev: { enumerable: true, value: function () { return this.runFragment('dev') } }, // optimal
+    Dev: { enumerable: true, value: function (globalKey) { return this.runFragment('dev', globalKey) } }, // optimal
     ImportPackage: { // optimal
         enumerable: true, value: async function (pkg, packageUrl, packageKey) {
             if (!this.isPlainObject(pkg)) return
@@ -1135,12 +1135,6 @@ const UI = Object.defineProperties({}, {
 
         }
 
-    },
-    Mesh: {
-        enumerable: true, value: class {
-            static E;
-            constructor({ }) { }
-        }
     },
     Datastore: {
         enumerable: true, value: class {
