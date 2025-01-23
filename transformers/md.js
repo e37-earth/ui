@@ -1,10 +1,11 @@
 const regexp = { htmlBlocks: /<html>\n+.*\n+<\/html>/g, htmlSpans: /<html>.*<\/html>/g }
 
-export default (E) => {
-    return new E.transformer(async (text, envelope) => {
-        const lib = E.app.libraries['text/markdown']
+export default (E37) => {
+    const { UI } = E37
+    return new UI.transformer(async (text, envelope) => {
+        const lib = UI.app.libraries['text/markdown']
         if (!lib) {
-            lib = await E.resolveUnit('md', 'library')
+            lib = await UI.resolveUnit('md', 'library')
 
             const plugin = md => md.core.ruler.push('html-components', parser(md, {}), { alt: [] }),
                 parser = md => {
@@ -14,7 +15,7 @@ export default (E) => {
                             const token = tokens[i]
                             for (const child of (token.children ?? [])) {
                                 if (child.type !== 'text') return
-                                if (E.sys.regexp.isTag.test(child.content)) child.type = 'htmltag'
+                                if (UI.sys.regexp.isTag.test(child.content)) child.type = 'htmltag'
                             }
                         }
                     }

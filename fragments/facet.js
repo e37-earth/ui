@@ -12,10 +12,10 @@ const checkConditions = function () {
 
 export default {
     parseDirectives: async function (directives) {
-        const { E } = this.constructor
+        const { E37 } = this.constructor, { UI } = E37
         directives = directives.trim()
         if (!directives) return
-        const targetNames = { cell: E.Cell, field: E.Field, '#': E.Cell, '@': E.Field }, { interpreters } = E.env
+        const targetNames = { cell: UI.Cell, field: UI.Field, '#': UI.Cell, '@': UI.Field }, { interpreters } = UI.env
         let statementIndex = -1
         for (let directive of directives.split(regexp.directiveSplitter)) {
             directive = directive.trim()
@@ -40,8 +40,8 @@ export default {
                     handlerExpression = handlerExpression.slice(0, defaultExpressionMatch.index).trim()
                     let name
                     if (defaultExpression.length > 1) switch (defaultExpression[0]) {
-                        case '@': new E.Field(defaultExpression.slice(1).trim(), undefined, this); break
-                        case '#': new E.Cell(defaultExpression.slice(1).trim()); break
+                        case '@': new UI.Field(defaultExpression.slice(1).trim(), undefined, this); break
+                        case '#': new UI.Cell(defaultExpression.slice(1).trim()); break
                     }
                 }
                 label ||= `${stepIndex}`
@@ -64,7 +64,7 @@ export default {
                 for (const [matcher, interpreter] of interpreters) {
                     const { parser, name } = interpreter
                     if (matcher.test(handlerExpression) && (typeof parser === 'function')) {
-                        stepEnvelope = { name, interpreter: matcher.toString(), descriptor: (await parser.call(E, handlerExpression)) ?? {}, variables: {} }
+                        stepEnvelope = { name, interpreter: matcher.toString(), descriptor: (await parser.call(E37, handlerExpression)) ?? {}, variables: {} }
                         if (name === 'state') {
                             const { target, shape } = stepEnvelope.descriptor
                             switch (shape) {
@@ -89,7 +89,7 @@ export default {
                     if (!matcher) continue
                     stepEnvelope = { name, interpreter: 'undefined', descriptor: { verbose: true }, variables: {} }
                 }
-                for (const p in stepEnvelope.descriptor) if (E.isWrappedVariable(stepEnvelope.descriptor[p])) stepEnvelope.variables[p] = true
+                for (const p in stepEnvelope.descriptor) if (UI.isWrappedVariable(stepEnvelope.descriptor[p])) stepEnvelope.variables[p] = true
                 if (Object.keys(stepEnvelope.variables).length) Object.freeze(stepEnvelope.variables)
                 else delete stepEnvelope.variables
                 Object.freeze(stepEnvelope.descriptor)
@@ -106,26 +106,26 @@ export default {
         }
     },
     setupConditions: function (conditions) {
-        const { E } = this.constructor
+        const { E37 } = this.constructor, { UI } = E37
         let { dom, location, cells, fields, host } = conditions, signal = this.controller.signal
-        if (dom && ((typeof dom === 'string') || E.isPlainObject(dom))) {
+        if (dom && ((typeof dom === 'string') || UI.isPlainObject(dom))) {
             if (typeof dom === 'string') dom = { [dom]: true }
             for (const scopedSelector in dom) {
-                const { scope: scopeStatement, selector } = E.resolveScopedSelector(scopedSelector), scope = E.resolveScope(scopeStatement, this.root),
+                const { scope: scopeStatement, selector } = UI.resolveScopedSelector(scopedSelector), scope = UI.resolveScope(scopeStatement, this.root),
                     check = !!dom[scopedSelector]
                 if (scope) {
-                    this.conditions.dom[scopedSelector] = (!!(E.resolveSelector(selector, scope)?.length) === check)
+                    this.conditions.dom[scopedSelector] = (!!(UI.resolveSelector(selector, scope)?.length) === check)
                     const attributeFilter = selector.match(this.sys.regexp.extractAttributes), attributes = !!attributeFilter.length
                     this.conditionsAnchorObservers[scopedSelector] = new MutationObserver(() => {
-                        this.conditions.dom[scopedSelector] = (!!(E.resolveSelector(selector, scope)?.length) === check)
+                        this.conditions.dom[scopedSelector] = (!!(UI.resolveSelector(selector, scope)?.length) === check)
                         checkConditions.call(this)
                     })
                     this.conditionsAnchorObservers[k].observe(scope, { subtree: true, childList: true, attributes, attributeFilter: (attributes ? attributeFilter : undefined) })
                 }
             }
         }
-        if (location && ((typeof location === 'string') || E.isPlainObject(location))) {
-            if (typeof location === 'string') location = { ...E.resolveUrl(location, undefined, true) }
+        if (location && ((typeof location === 'string') || UI.isPlainObject(location))) {
+            if (typeof location === 'string') location = { ...UI.resolveUrl(location, undefined, true) }
             for (const k in document.location) {
                 if (!location[k]) continue
                 if (k === 'hash') {
@@ -144,10 +144,10 @@ export default {
         const stateTypeMap = { Cell: [cells, 'cells'], Field: [fields, 'fields'] }
         for (const stateType in stateTypeMap) {
             let [stateSet, stateConditionLabel] = stateTypeMap[stateType]
-            if (stateSet && ((typeof stateSet === 'string') || E.isPlainObject(stateSet))) {
+            if (stateSet && ((typeof stateSet === 'string') || UI.isPlainObject(stateSet))) {
                 if (typeof stateSet === 'string') stateSet = { [stateSet]: true }
                 for (const name in stateSet) {
-                    const stateInstance = new E[stateType](name), check = !!stateSet[name]
+                    const stateInstance = new UI[stateType](name), check = !!stateSet[name]
                     stateInstance.eventTarget.addEventListener('change', () => {
                         this.conditions[stateConditionLabel][name] = (!!stateInstance.value === check)
                         checkConditions.call(this)
@@ -156,7 +156,7 @@ export default {
                 }
             }
         }
-        if (host && root && (root instanceof ShadowRoot) && ((typeof host === 'string') || E.isPlainObject(host))) {
+        if (host && root && (root instanceof ShadowRoot) && ((typeof host === 'string') || UI.isPlainObject(host))) {
             if (typeof host === 'string') host = { [host]: true }
             const hostComponentInstance = root.host
             for (const eventName in host) {

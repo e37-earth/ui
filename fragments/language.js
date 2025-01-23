@@ -1,9 +1,10 @@
 export default {
     preload: async function (langCode) {
+        const { E37 } = this.constructor, { UI } = E37
         const { virtual = {}, saveVirtual, tokens } = this
         if (virtual.engine instanceof Promise) await virtual.engine
         if (!virtual.engine) return
-        const { engine, engineIntent, preload, lang, base } = virtual, engineInputBase = { base, tokens }, envelope = await this.constructor.E.createEnvelope(this.envelope ?? {}), promises = []
+        const { engine, engineIntent, preload, lang, base } = virtual, engineInputBase = { base, tokens }, envelope = await UI.createEnvelope(this.envelope ?? {}), promises = []
         if (langCode) return (lang[langCode] ??= engine.run({ ...engineInputBase, to: langCode }, engineIntent, envelope).then(virtualTokens => saveVirtual(virtualTokens, langCode)))
         if (Array.isArray(preload)) for (const preloadLangCode of preload)
             promises.push(lang[preloadLangCode] ??= engine.run({ ...engineInputBase, to: preloadLangCode }, engineIntent, envelope).then(virtualTokens => saveVirtual(virtualTokens, virtualLangCode)))

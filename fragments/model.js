@@ -1,7 +1,8 @@
 export default {
     load: async function (library, load, options) {
+        const { E37 } = this.constructor, { UI } = E37
         if (this.loaded) return true
-        this.library ??= await this.constructor.E.resolveUnit(library, 'library')
+        this.library ??= await UI.resolveUnit(library, 'library')
         if (!this.library) return
         this.options = options ?? {}
         this.loader ??= load.bind(this)
@@ -10,7 +11,8 @@ export default {
         return this.loaded
     },
     run: async function (input) {
-        if (!this.loaded) await this.constructor.E.Job.waitComplete(`model:${this.name}`, Infinity)
+        const { E37 } = this.constructor, { UI } = E37
+        if (!this.loaded) await UI.Job.waitComplete(`model:${this.name}`, Infinity)
         return this.inference(input, this.engine, this.options.inference ?? {})
     }
 }

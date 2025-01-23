@@ -98,18 +98,18 @@ export default {
         })
     },
     add: async function (record, table, tables, queue) {
-        const { E } = this.constructor
+        const { E37 } = this.constructor, { UI } = E37
         if (table) {
             const tableTypeName = tables[table]?.type
             if (!tableTypeName) return
-            return E.resolveUnit(tableTypeName, 'type').then(type => type.run(record)).then(valid => {
+            return UI.resolveUnit(tableTypeName, 'type').then(type => type.run(record)).then(valid => {
                 if (!valid) return
                 queue.push(record)
-                new E.Job(async function () { await this.processQueue() }, `Datastore.prototype.processQueue:${this.name}`)
+                new UI.Job(async function () { await this.processQueue() }, `Datastore.prototype.processQueue:${this.name}`)
             })
         }
         queue.push(record)
-        new E.Job(async function () { await this.processQueue() }, `Datastore.prototype.processQueue:${this.name}`)
+        new UI.Job(async function () { await this.processQueue() }, `Datastore.prototype.processQueue:${this.name}`)
     },
     processQueue: async function (queue) {
         const promises = []

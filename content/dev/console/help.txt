@@ -9,7 +9,7 @@ $`command arg1 arg2 ...`
 $`command arg1 "arg two with spaces" {arg3:isAnObject} ?arg4=alsoAnObject [arg5,is,an,array]`
 • Each argument can use the standard Element variable syntax to handle any data type.
 ...
-**Element Variable Syntax Primer for Commands:**
+**E37 Variable Syntax Primer for Commands:**
 • Special values: true false null undefined
 • Special value aliases: . ! - ? are aliases for true false null and undefined respectively.
 • Numbers: Integers and floats are supported just as they are, e.g. 123 and 1.23

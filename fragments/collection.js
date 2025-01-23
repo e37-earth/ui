@@ -1,8 +1,9 @@
 export default {
     run: async function (slug, lang, envelope) {
+        const { E37 } = this.constructor, { UI } = E37
         if (typeof slug === 'string') {
-            slug = this.constructor.E.resolveVariable(slug, envelope, { merge: true })
-            if (lang && typeof lang === 'string') slug = `${this.constructor.E.resolveVariable(lang, envelope, { merge: true })}/${slug}`
+            slug = UI.resolveVariable(slug, envelope, { merge: true })
+            if (lang && typeof lang === 'string') slug = `${UI.resolveVariable(lang, envelope, { merge: true })}/${slug}`
         }
         return this.engine(slug, envelope)
     }

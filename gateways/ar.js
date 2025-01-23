@@ -1,4 +1,4 @@
-export default E => new E.ProtocolDispatcher([{
+export default E37 => new E37.UI.ProtocolDispatcher([{
     gateway: function (useHost = {}, gatewayArgs = {}) {
         if (typeof useHost !== 'string') return fetch(`${window.location.protocol}//localhost:1984`, { method: 'HEAD' }).then(r => r.ok ? 'localhost:1984' : 'arweave.net')
         const [txid, ...chunks] = gatewayArgs.path.split('/')

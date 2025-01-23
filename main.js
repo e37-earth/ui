@@ -867,7 +867,7 @@ const UI = Object.defineProperties({}, {
 
     AI: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             constructor({ service, model, promptTemplates = {} }) {
                 if (!service) return
                 const { E } = this.constructor
@@ -898,12 +898,12 @@ const UI = Object.defineProperties({}, {
                 }
                 this.engine = async input => ((this.model?.loaded ? this.modelWrapper : (this.serviceWrapper ?? this.modelWrapper))(input))
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('ai')).run.call(this, input, envelope, options.promptTemplateKey) }
+            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('ai')).run.call(this, input, envelope, options.promptTemplateKey) }
         }
     },
     Channel: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             type
             name
             config = {}
@@ -941,7 +941,7 @@ const UI = Object.defineProperties({}, {
     },
     Collection: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             constructor({ service = {}, ai = {} }) {
                 const { E } = this.constructor
                 switch (typeof service) {
@@ -974,12 +974,12 @@ const UI = Object.defineProperties({}, {
                 }
                 this.engine ??= this.serviceWrapper
             }
-            async run(slug, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('collection')).run.call(this, slug, envelope, options.langCode) }
+            async run(slug, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('collection')).run.call(this, slug, envelope, options.langCode) }
         }
     },
     Component: {
         enumerable: true, value: class extends HTMLElement {
-            static E
+            static E37 = {}
             static base = {}
             static events = {}
             static facet
@@ -1088,7 +1088,7 @@ const UI = Object.defineProperties({}, {
     },
     Contract: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
 
             eventTarget
 
@@ -1138,7 +1138,7 @@ const UI = Object.defineProperties({}, {
     },
     Datastore: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             name
             db
             tables = {}
@@ -1180,7 +1180,7 @@ const UI = Object.defineProperties({}, {
     },
     Facet: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             static saveToLabel(stepIndex, label, value, labelMode, labels, fields, cells) {
                 labels[`${stepIndex}`] = value
                 if (label && (label != stepIndex)) {
@@ -1206,7 +1206,7 @@ const UI = Object.defineProperties({}, {
                 if (typeof params === 'string') params = { directives: params }
                 const { conditions, directives, statements, fields, running, root } = params
                 if (!(directives || statements)) return
-                let promise = (statements && fields && Array.isArray(statements) && this.constructor.E.isPlainObject(fields))
+                let promise = (statements && fields && Array.isArray(statements) && this.constructor.E37.UI.isPlainObject(fields))
                     ? this.constructor.setupStatements(statements, fields) : ((typeof directives === 'string') ? this.parseDirectives(directives) : undefined)
                 if (!promise) return
                 this.root = (root instanceof ShadowRoot) ? root : document.documentElement
@@ -1260,10 +1260,10 @@ const UI = Object.defineProperties({}, {
                 eventTarget.dispatchEvent(new CustomEvent('init'))
                 this.inited = true
             }
-            async parseDirectives(directives) { return (await this.constructor.E.runFragment('facet')).parseDirectives.call(this, directives) }
+            async parseDirectives(directives) { return (await this.constructor.E37.UI.runFragment('facet')).parseDirectives.call(this, directives) }
             async pause() { return (this.running = false) }
             async run() { return (this.running = true) }
-            async setupConditions(conditions) { return (await this.constructor.E.runFragment('facet')).setupConditions.call(this, conditions) }
+            async setupConditions(conditions) { return (await this.constructor.E37.UI.runFragment('facet')).setupConditions.call(this, conditions) }
             async setupStatements(statements, fields) {
                 for (const statement of statements) {
                     if (!(statement?.labels && statement?.steps)) continue
@@ -1289,13 +1289,13 @@ const UI = Object.defineProperties({}, {
     },
     Gateway: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             fallbacks = []
             constructor(fallbacks) {
                 if (!Array.isArray(fallbacks)) fallbacks = [fallbacks]
                 for (let fallback of fallbacks) {
                     if (typeof fallback === 'string') fallback = { gateway: fallback }
-                    if (!this.constructor.E.isPlainObject(fallback)) continue
+                    if (!this.constructor.E37.UI.isPlainObject(fallback)) continue
                     this.fallbacks.push(fallback)
                 }
             }
@@ -1303,7 +1303,7 @@ const UI = Object.defineProperties({}, {
     },
     Job: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             running = false
             static cancelJob(id) { return this.constructor.queue.delete(id) }
             static isComplete(id) { return !this.constructor.queue.get(id) }
@@ -1339,7 +1339,7 @@ const UI = Object.defineProperties({}, {
                 this.running = true
                 try {
                     if (typeof this.jobFunction === 'function') {
-                        await this.jobFunction.call(this.constructor.E)
+                        await this.jobFunction.call(this.constructor.E37)
                         this.constructor.queue.delete(this.id)
                         this.running = false
                     } else this.cancel()
@@ -1351,7 +1351,7 @@ const UI = Object.defineProperties({}, {
     },
     Language: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             static validEngineClasses = new Set(['AI', 'Service'])
             constructor({ defaultTokenValue = '', tokens = {}, virtual = {}, envelope }) {
                 const { E } = this.constructor
@@ -1387,13 +1387,13 @@ const UI = Object.defineProperties({}, {
                 if (virtual && Array.isArray(virtual.preload)) this.preload()
             }
             saveVirtual(virtualTokens, langCode) { this.virtual.lang[langCode] = Object.freeze(virtualTokens) }
-            async preload(langCode) { return (await this.constructor.E.runFragment('language')).preload.call(this, langCode) }
-            async run(token, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('language')).run.call(this, token, options.langCode, envelope) }
+            async preload(langCode) { return (await this.constructor.E37.UI.runFragment('language')).preload.call(this, langCode) }
+            async run(token, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('language')).run.call(this, token, options.langCode, envelope) }
         }
     },
     Mesh: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             constructor({ }) {
 
             }
@@ -1401,20 +1401,20 @@ const UI = Object.defineProperties({}, {
     },
     Model: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             constructor({ inference, library, load, name, options = {} }) {
                 if (!((library && (typeof library === 'string')) && (typeof load === 'function') && (typeof inference === 'function'))) return
                 this.inference = inference.bind(this)
-                this.name = name ?? this.constructor.E.generateUuid()
-                new this.constructor.E.Job(async function () { await this.load(library, load, options) }, `model:${this.name}`)
+                this.name = name ?? this.constructor.E37.UI.generateUuid()
+                new this.constructor.E37.UI.Job(async function () { await this.load(library, load, options) }, `model:${this.name}`)
             }
-            async load(library, load, options) { return (await this.constructor.E.runFragment('model')).load.call(this, library, load, options) }
-            async run(input) { return (await this.constructor.E.runFragment('model')).run.call(this, input) }
+            async load(library, load, options) { return (await this.constructor.E37.UI.runFragment('model')).load.call(this, library, load, options) }
+            async run(input) { return (await this.constructor.E37.UI.runFragment('model')).run.call(this, input) }
         }
     },
     Renderer: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             static validEngineClasses = new Set(['AI', 'Service', 'Collection', 'Language', 'Transformer'])
             observers = new WeakMap()
             constructor({ engine, matches = {}, mode, scopeSelector, name, namespace, labels = {}, defaultValue = '', envelope }) {
@@ -1484,7 +1484,7 @@ const UI = Object.defineProperties({}, {
                 this.attributeFilter = Array.from(attributes)
                 Object.freeze(this.matches)
             }
-            async apply(node) { return (await this.constructor.E.runFragment('renderer')).apply.call(this, node) }
+            async apply(node) { return (await this.constructor.E37.UI.runFragment('renderer')).apply.call(this, node) }
             support(node) {
                 const observer = new MutationObserver((mutations) => {
                     const { scopeSelector } = this
@@ -1498,12 +1498,12 @@ const UI = Object.defineProperties({}, {
                 this.apply(node)
                 if (node.shadowRoot) this.support(node.shadowRoot)
             }
-            async run() { return (await this.constructor.E.runFragment('renderer')).run.call(this) }
+            async run() { return (await this.constructor.E37.UI.runFragment('renderer')).run.call(this) }
         }
     },
     Service: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             constructor({ base = '.', actions = {}, options = {}, contentType = 'application/json', acceptType, preProcessor, postProcessor, errorProcessor }) {
                 const { E } = this.constructor
                 Object.assign(this, { E, base: this.resolveUrl(base), actions, options, contentType, acceptType, preProcessor, postProcessor, errorProcessor })
@@ -1514,12 +1514,12 @@ const UI = Object.defineProperties({}, {
                 if (this.actions) Object.freeze(this.actions)
                 if (this.options) Object.freeze(this.options)
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('service')).run.call(this, input, envelope, options.action) }
+            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('service')).run.call(this, input, envelope, options.action) }
         }
     },
     State: { // optimal
         value: class {
-            static E
+            static E37 = {}
             name
             type
             value
@@ -1546,7 +1546,7 @@ const UI = Object.defineProperties({}, {
     },
     Transformer: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             static embeddableClasses = new Set('Service', 'Collection', 'AI', 'Transformer', 'Language')
             isProxy
             stepIntermediates
@@ -1596,12 +1596,12 @@ const UI = Object.defineProperties({}, {
                     }
                 }
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('transformer')).run.call(this, input, envelope, options.step, options.flag) }
+            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('transformer')).run.call(this, input, envelope, options.step, options.flag) }
         }
     },
     Type: { // optimal
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             constructor(typeDefinition, typeName) {
                 const { E } = this.constructor
                 if (!typeDefinition) return
@@ -1651,13 +1651,13 @@ const UI = Object.defineProperties({}, {
     },
     Validator: { // optimal
         enumerable: true, value: class {
-            static E
-            static async run(input, envelope, facet, position, options = {}) { return (await this.E.runFragment('validator')).run.call(this, input, envelope, facet, position, options) }
+            static E37 = {}
+            static async run(input, envelope, facet, position, options = {}) { return (await this.E37.UI.runFragment('validator')).run.call(this, input, envelope, facet, position, options) }
         }
     },
     Worker: {
         enumerable: true, value: class {
-            static E
+            static E37 = {}
             type
             name
             config = {}
@@ -1715,7 +1715,7 @@ Object.defineProperties(UI, {
 })
 const { app } = UI
 for (const k in UI.env) Object.defineProperty(app, k, { configurable: false, enumerable: true, writable: false, value: {} })
-for (const className of ['Service', 'Collection', 'Component', 'Facet', 'Gateway', 'Job', 'Language', 'Transformer', 'Type', 'Validator']) Object.defineProperty(UI[className], 'E', { configurable: false, writable: false, value: UI })
+for (const p in UI) if (typeof UI[p] === 'function' && Function.prototype.toString.call(UI[p]).slice(0, 6) === 'class ') Object.defineProperty(UI[p].E37, 'UI', { configurable: false, writable: false, value: UI })
 const metaUrl = new URL(import.meta.url), initializationParameters = metaUrl.searchParams
 if (initializationParameters.has('dev')) await UI.Dev(initializationParameters.get('dev'))
 if (initializationParameters.has('packages')) {

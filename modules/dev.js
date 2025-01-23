@@ -291,7 +291,7 @@ const module = {
                         const unitClassString = unitClass.toString()
                         if (unitType === 'facet') return unitClassString
                         const componentClassString = this.Component.toString()
-                        if (unitClassString === componentClassString) return `class ${identifier} extends E.Component {}`
+                        if (unitClassString === componentClassString) return `class ${identifier} extends E37.UI.Component {}`
                         return unitClassString
                     default:
                         return unitClass
@@ -347,7 +347,7 @@ const module = {
                                         renderId = renderId.replace(new RegExp(r.pattern, r.flags), r.replaceWith)
                                     }
                                 }
-                                packageSource += `\nPackage.${scope}['${renderId}'] = E => (${this.modules.dev.export.component((overrides[scope] ?? {})[id] ?? id, 'string')})`
+                                packageSource += `\nPackage.${scope}['${renderId}'] = E37 => (${this.modules.dev.export.component((overrides[scope] ?? {})[id] ?? id, 'string')})`
                             }
                             break
                         case 'context':
@@ -356,7 +356,7 @@ const module = {
                             }
                             break
                         case 'facets':
-                            for (const cid of scopeItems) packageSource += `\nPackage.${scope}['${cid}'] = E => (${this.modules.dev.export.facet((overrides[scope] ?? {})[cid] ?? cid, 'string')})`
+                            for (const cid of scopeItems) packageSource += `\nPackage.${scope}['${cid}'] = E37 => (${this.modules.dev.export.facet((overrides[scope] ?? {})[cid] ?? cid, 'string')})`
                             break
                         case 'helpers': case 'hooks': case 'loaders':
                             const isHooks = scope === 'hooks', hookPackages = isHooks ? scopeOptions.packages : new Set(), hookPackagesIsSet = hookPackages instanceof Set
@@ -409,7 +409,7 @@ const module = {
                             for (const n of scopeItems) if (this.env[scope][n]) packageSource += `\nPackage.${scope}['${n}'] = new RegExp("${((overrides[scope] ?? {})[n] ?? this.env[scope][n]).source}", "${((overrides[scope] ?? {})[n] ?? this.env[scope][n]).flags}")`
                             break
                         case 'templates':
-                            for (const n of scopeItems) if (this.env[scope][n]) packageSource += `\nPackage.${scope}['${n}'] = E => { const t = document.createElement('template'); t.innerHTML = \`${(overrides[scope] ?? {})[n] ?? this.env[scope][n].innerHTML ?? ''}\`; return t }`
+                            for (const n of scopeItems) if (this.env[scope][n]) packageSource += `\nPackage.${scope}['${n}'] = E37 => { const t = document.createElement('template'); t.innerHTML = \`${(overrides[scope] ?? {})[n] ?? this.env[scope][n].innerHTML ?? ''}\`; return t }`
                             break
                         case 'transformers':
                             for (const n of scopeItems) {
@@ -684,7 +684,7 @@ const module = {
                 case 'component': case 'facet': case 'package':
                     args.unshift(dir)
                     const suggestedName = `${(typeof args[0] === 'string' ? (args[0] ?? what) : what)}.js`.replace('.js.js', '.js'),
-                        sourceCode = await E.dev.grab(what, ...args), fileHandle = await window.showSaveFilePicker({
+                        sourceCode = await E37.UI.dev.grab(what, ...args), fileHandle = await window.showSaveFilePicker({
                             types: [{
                                 description: 'JavaScript Files',
                                 accept: { 'application/javascript': ['.js'] }
@@ -720,7 +720,7 @@ const module = {
             if (!(adaptor instanceof Function)) return await this.modules.dev.save(what, adaptor, ...args)
             switch (what) {
                 case 'component': case 'facet': case 'package':
-                    const fileName = `${(typeof args[0] === 'string' ? (args[0] ?? what) : what)}.js`.replace('.js.js', '.js'), sourceCode = await E.dev.grab(what, ...args),
+                    const fileName = `${(typeof args[0] === 'string' ? (args[0] ?? what) : what)}.js`.replace('.js.js', '.js'), sourceCode = await E37.UI.dev.grab(what, ...args),
                         file = new File(new Blob([sourceCode], { type: 'application/javascript' }), fileName, { type: 'application/javascript' })
                     console.log(`Send of ${what} ${fileName} starting...`)
                     for await (const progress of adaptor(what, fileName, file)) console.log(`${fileName} ${progress}...`)
