@@ -11,10 +11,10 @@ export default async function (unitSource, unitType) {
     let unitUrl, suffixIsExplicit
     switch (unitSource[0]) {
         case '.': case '/': suffixIsExplicit = !!(unitUrl = this.resolveUrl(unitSource, undefined, true)); break
-        case '~': unitUrl = this.resolveUrl(`${unitTypeCollectionName}/${unitSource.slice(1)}`, undefined, true); break
+        case '~': unitUrl = this.resolveUrl(`/${unitTypeCollectionName}/${unitSource.slice(1)}`, undefined, true); break
         default:
             if (unitSource.includes('://')) try { suffixIsExplicit = !!(unitUrl = this.resolveUrl(new URL(unitSource).href, undefined, true)) } catch (e) { suffixIsExplicit = true }
-            else unitUrl = this.resolveUrl(`/${unitTypeCollectionName}/${unitSource}`, undefined, true)
+            else unitUrl = this.resolveUrl(`${unitTypeCollectionName}/${unitSource}`, undefined, true)
     }
     if (!unitUrl) return
     let unitSuffix, unitModule, unit

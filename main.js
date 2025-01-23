@@ -295,8 +295,8 @@ const UI = Object.defineProperties({}, {
             if (typeof postPackageInstall === 'function') await postPackageInstall(this)
         }
     },
-    Load: { // optimal
-        enumerable: true, value: async function (rootElement = undefined) {
+    Mount: { // optimal
+        enumerable: true, value: async function () {
             const { env, app, sys, runUnit } = this, { interpreters } = env, { _eventTarget } = app
             for (const [, interpreter] of interpreters) for (const p of ['handler', 'binder']) if (interpreter[p]) interpreter[p] = interpreter[p].bind(this)
             const interpretersProxyError = () => { throw new Error('Interpreters are read-only at runtime.') }
@@ -742,10 +742,10 @@ const UI = Object.defineProperties({}, {
                 }
             }
             const promises = []
-            if ((element instanceof HTMLMetaElement && element.name.startsWith('e-'))) {
-                let [unitType, asUnitKey] = element.name.slice(2).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
+            if ((element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-'))) {
+                let [unitType, asUnitKey] = element.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
                 unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
-                if (unitType in this.sys.unitTypeMap) promises.push(this.resolveUnit(element.content.trim(), unitType, asUnitKey))
+                if ((unitType in this.sys.unitTypeMap) && element.content) promises.push(this.resolveUnit(element.content.trim(), unitType, asUnitKey))
             }
             if (element.shadowRoot?.children) for (const n of element.shadowRoot.children) promises.push(this.mountElement(n))
             for (const n of element.children) promises.push(this.mountElement(n))
@@ -1741,6 +1741,5 @@ if (initializationParameters.has('packages')) {
     await Promise.all(Array.from(importPromises.values()))
     for (const [url, imp] of importPromises) await UI.ImportPackage(await imp.promise, url, imp.key)
 }
-if (initializationParameters.has('load')) await UI.Load()
+if (!initializationParameters.has('no-mount')) await UI.Mount()
 export { UI }
-
