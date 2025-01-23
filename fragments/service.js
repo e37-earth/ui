@@ -1,7 +1,7 @@
 export default {
     run: async function (value, action, envelope) {
         const { E } = this
-        if (this.preProcessor) value = await E.runUnit(this.preProcessor, 'transform', value)
+        if (this.preProcessor) value = await E.runUnit(this.preProcessor, 'transformer', value)
         action = (action ? this.actions[action] : undefined) ?? { pathname: `/${('pathname' in this.options) ? (this.options.pathname || '') : (action || '')}` }
         const options = {
             ...this.options, ...(action?.options ?? {}),
@@ -11,16 +11,16 @@ export default {
             url = E.resolveUrl(pathname, E.resolveVariable(this.base, envelope, { merge }))
         if (value === 0 || (value && typeof value !== 'string')) {
             const contentType = options.headers['Content-Type'] ?? options.headers['content-type'] ?? action.contentType ?? this.contentType
-            options.body = await E.runUnit(contentType, 'transform', value)
+            options.body = await E.runUnit(contentType, 'transformer', value)
             if (typeof options.body !== 'string') throw new Error(`Input value unable to be serialized to "${contentType}".`)
         }
         const response = await fetch(url, options)
         let result
         if (response.ok) {
             const acceptType = options.headers.Accept ?? options.headers.accept ?? action.acceptType ?? this.acceptType
-            result = await E.runUnit(acceptType, 'transform', await response.text())
-            if (this.postProcessor) result = await E.runUnit(this.postProcessor, 'transform', result)
-        } else if (this.errorProcessor) result = await E.runUnit(this.errorProcessor, 'transform', response)
+            result = await E.runUnit(acceptType, 'transformer', await response.text())
+            if (this.postProcessor) result = await E.runUnit(this.postProcessor, 'transformer', result)
+        } else if (this.errorProcessor) result = await E.runUnit(this.errorProcessor, 'transformer', response)
         return result
     }
 }

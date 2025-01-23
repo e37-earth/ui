@@ -1,5 +1,5 @@
 const application = (E) => {
-    return new E.transform(async (input, envelope) => {
+    return new E.transformer(async (input, envelope) => {
         const XDR = await E.resolveUnit('xdr', 'library'), { state } = envelope, { response = {} } = state
         let xTypeHeader = state.type ?? response?.headers?.['x-type'], typeDef
         if (xTypeHeader) {
@@ -13,7 +13,7 @@ const application = (E) => {
     })
 }
 const text = (E) => {
-    return new E.transform(async (input, envelope) => {
+    return new E.transformer(async (input, envelope) => {
         if (typeof input !== 'string') return
         const XDR = await E.resolveUnit('xdr', 'library'), { state } = envelope, { response = {} } = state, { headers = {} } = response
         let options = { baseURI: 'baseuri', name: 'name', namespace: 'namespace', includes: 'includes' }

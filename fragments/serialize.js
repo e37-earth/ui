@@ -9,5 +9,5 @@ export default async function (input, contentType) {
         if (input instanceof HTMLElement) return (await (new CSSStyleSheet()).replace(input.textContent)).cssRules.map(rule => rule.cssText).join('\n')
         if (input instanceof CSSStyleSheet) return input.cssRules.map(rule => rule.cssText).join('\n')
     }
-    return (await this.resolveUnit(contentType, 'transform'))?.run(input)
+    return (await this.resolveUnit(contentType, 'transformer'))?.run(input)
 }

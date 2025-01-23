@@ -1,7 +1,7 @@
 const regexp = { htmlBlocks: /<html>\n+.*\n+<\/html>/g, htmlSpans: /<html>.*<\/html>/g }
 
 export default (E) => {
-    return new E.transform(async (text, envelope) => {
+    return new E.transformer(async (text, envelope) => {
         const lib = E.app.libraries['text/markdown']
         if (!lib) {
             lib = await E.resolveUnit('md', 'library')

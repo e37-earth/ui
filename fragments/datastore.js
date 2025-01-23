@@ -46,9 +46,9 @@ const generateRecordIdentifier = async function (record) {
     for (const name in this.views) {
         const view = this.views[name]
         if (!(recordTables.intersection(view.tables).size || recordQueries.intersection(view.queries).size)) return
-        const viewTransform = await this.resolveUnit(view.transform, 'transform')
-        if (!viewTransform) return
-        const recordView = await viewTransform.run(record)
+        const viewTransformer = await this.resolveUnit(view.transformer, 'transformer')
+        if (!viewTransformer) return
+        const recordView = await viewTransformer.run(record)
         if (recordView === undefined) return
         const tx = this.db.transaction('views', 'readwrite'), store = tx.objectStore('views'), viewStoreRequest = store.get(name)
         viewStoreRequest.onsuccess = (event) => {
@@ -60,8 +60,8 @@ const generateRecordIdentifier = async function (record) {
     for (const name in this.summaries) {
         const summary = this.summaries[name]
         if (!(recordTables.intersection(summary.tables).size || recordQueries.intersection(summary.queries).size)) return
-        const summaryTransform = await this.resolveUnit(summary.transform, 'transform')
-        if (!summaryTransform) return
+        const summaryTransformer = await this.resolveUnit(summary.transformer, 'transformer')
+        if (!summaryTransformer) return
         const summaryInput = { tables: {}, summaries: {}, views: {} }
         for (const scopeName in summaryInput) {
             for (const n of summary[scopeName]) {
@@ -70,7 +70,7 @@ const generateRecordIdentifier = async function (record) {
                 request.onsuccess = (event) => summaryInput[scopeName][n] = event.target.result
             }
         }
-        const summaryResult = await summaryTransform.run(summaryInput)
+        const summaryResult = await summaryTransformer.run(summaryInput)
         if (summaryResult === undefined) return
         const tx = this.db.transaction('summaries', 'readwrite'), store = tx.objectStore('summaries')
         store.put(summaryResult, name)

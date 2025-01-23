@@ -16,7 +16,7 @@ enum HandlerType {
     selector = 9, 
     state = 10, 
     string = 11, 
-    transform = 12, 
+    transformer = 12, 
     variable = 13, 
     wait = 14
 };
@@ -152,7 +152,7 @@ union Params switch(HandlerType handler) {
         CtxState ctx;
     case string:
         CtxExpression ctx;
-    case transform:
+    case transformer:
         CtxExpression ctx;
     case variable:
         CtxExpression ctx;

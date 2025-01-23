@@ -46,19 +46,19 @@ const UI = Object.defineProperties({}, {
                     }
                 }],
                 [/^(\$|\$Number|\$String|\$Array|\$Object|\$Date|\$Math|\$\$|[a-zA-Z0-9_]+)(\.[a-zA-Z0-9_]+)?\((.*)\)$/, {
-                    name: 'transform',
-                    handler: async function (facet, position, envelope, value) { return await this.runFragment('env/interpreters/transform', facet, position, envelope, value) },
+                    name: 'transformer',
+                    handler: async function (facet, position, envelope, value) { return await this.runFragment('env/interpreters/transformer', facet, position, envelope, value) },
                     binder: async function (facet, position, envelope) {
-                        const { descriptor } = envelope, { transform, step, flag } = descriptor
-                        new this.Job(async function () { await this.resolveUnit(transform, 'transform') }, `transform:${transform}`)
+                        const { descriptor } = envelope, { transformer, step, flag } = descriptor
+                        new this.Job(async function () { await this.resolveUnit(transformer, 'transformer') }, `transformer:${transformer}`)
                         if (!step && flag) new this.Job(async function () { await this.resolveUnit('jsonata', 'library') }, `library:jsonata`)
                     },
                     parser: async function (expression) {
-                        const [transformBody, ...flagPieces] = expression.split(this.sys.regexp.openBracketSplitter),
+                        const [transformerBody, ...flagPieces] = expression.split(this.sys.regexp.openBracketSplitter),
                             flagRaw = flagPieces.join('('),
                             flag = (!flagRaw || flagRaw === ')') ? undefined : flagRaw.slice(0, -1).trim(),
-                            [transform, step] = transformBody.split(this.sys.regexp.periodSplitter)
-                        return { transform, step, flag: (flag || undefined) }
+                            [transformer, step] = transformerBody.split(this.sys.regexp.periodSplitter)
+                        return { transformer, step, flag: (flag || undefined) }
                     }
                 }],
                 [/^\/.*\/$/, {
@@ -190,7 +190,7 @@ const UI = Object.defineProperties({}, {
                     handler: async function (facet, position, envelope, value) { return await this.runFragment('env/interpreters/request', envelope, value) },
                     binder: async function (facet, position, envelope) {
                         const { descriptor, variables } = envelope, { contentType } = descriptor
-                        if (!variables?.contentType) new this.Job(async function () { await this.resolveUnit(contentType, 'transform') }, `transform:${contentType}`)
+                        if (!variables?.contentType) new this.Job(async function () { await this.resolveUnit(contentType, 'transformer') }, `transformer:${contentType}`)
                     },
                     parser: async function (expression) {
                         const [url, contentType] = this.expression.slice(1, -1).trim().split(this.sys.regexp.pipeSplitterAndTrim)
@@ -224,41 +224,41 @@ const UI = Object.defineProperties({}, {
             models: {},
             namespaces: { e: new URL(`./components`, import.meta.url) },
             patterns: {}, renderers: {}, resolvers: {}, snippets: {},
-            transforms: {
+            transformers: {
                 '$': (E) => {
                     const proxy = new Proxy(function () { }, {
                         apply: (target, thisArg, argumentsList) => {
-                            const [input, state, envelope, transformInstance, jsonataExpression] = argumentsList, expressionKey = `(${jsonataExpression})`
+                            const [input, state, envelope, transformerInstance, jsonataExpression] = argumentsList, expressionKey = `(${jsonataExpression})`
                             return E.resolveUnit('jsonata', 'library').then(jsonata => {
-                                const expression = transformInstance.stepIntermediates.get(expressionKey)
-                                    ?? transformInstance.stepIntermediates.set(expressionKey, jsonata(`(${jsonataExpression})`)).get(expressionKey)
+                                const expression = transformerInstance.stepIntermediates.get(expressionKey)
+                                    ?? transformerInstance.stepIntermediates.set(expressionKey, jsonata(`(${jsonataExpression})`)).get(expressionKey)
                                 return expression.evaluate(input, { state, envelope })
                             })
                         },
                         get: (target, prop, receiver) => {
-                            return (input, state, envelope, transformInstance) => ((input?.[prop] === undefined) ? undefined : (typeof input[prop] === 'function' ? input[prop]() : input[prop]))
+                            return (input, state, envelope, transformerInstance) => ((input?.[prop] === undefined) ? undefined : (typeof input[prop] === 'function' ? input[prop]() : input[prop]))
                         }
                     })
-                    return (new E.Transform(proxy, true))
+                    return (new E.Transformer(proxy, true))
                 },
                 '$$': (E) => {
                     const proxy = new Proxy({}, {
                         get: (target, prop, receiver) => {
-                            return (input, state, envelope, transformInstance) => {
+                            return (input, state, envelope, transformerInstance) => {
                                 const c = Object.getPrototypeOf(input).constructor
                                 if (!c) return
                                 return ((c[prop] === undefined) ? undefined : (typeof c[prop] === 'function' ? c[prop](input) : c[prop]))
                             }
                         }
                     })
-                    return (new E.Transform(proxy, true))
+                    return (new E.Transformer(proxy, true))
                 },
                 ...Object.fromEntries((['Array']).map(c => {
                     return [`$${c}`, (E) => {
                         const proxy = new Proxy({}, {
                             get: (target, prop, receiver) => ((input) => ((window[c][prop] === undefined) ? undefined : (typeof window[c][prop] === 'function' ? window[c][prop](input) : window[c][prop])))
                         })
-                        return (new E.Transform(proxy, true))
+                        return (new E.Transformer(proxy, true))
                     }]
                 })),
                 ...Object.fromEntries((['Date', 'Math', 'Number', 'Object', 'String']).map(c => {
@@ -269,11 +269,11 @@ const UI = Object.defineProperties({}, {
                                 return (input) => ((window[c][prop] === undefined) ? undefined : (typeof window[c][prop] === 'function' ? window[c][prop](...(Array.isArray(input) ? input : [input])) : window[c][prop]))
                             }
                         })
-                        return (new E.Transform(proxy, true))
+                        return (new E.Transformer(proxy, true))
                     }]
                 })),
-                'application/json': (E) => (new E.Transform((input) => { try { return JSON.stringify(input) } catch (e) { } })), 'text/markdown': import.meta.resolve('./transforms/md.js'),
-                'application/x-xdr': `${import.meta.resolve('./transforms/xdr.js')}#application`, 'text/x-xdr': `${import.meta.resolve('./transforms/xdr.js')}#text`,
+                'application/json': (E) => (new E.Transformer((input) => { try { return JSON.stringify(input) } catch (e) { } })), 'text/markdown': import.meta.resolve('./transformers/md.js'),
+                'application/x-xdr': `${import.meta.resolve('./transformers/xdr.js')}#application`, 'text/x-xdr': `${import.meta.resolve('./transformers/xdr.js')}#text`,
             },
             types: {}
         }
@@ -594,12 +594,12 @@ const UI = Object.defineProperties({}, {
             unitTypeCollectionNameToUnitTypeMap: Object.freeze({
                 services: 'service', components: 'component', content: 'content', context: 'context', facets: 'facet', gateways: 'gateway', hooks: 'hook',
                 interpreters: 'interpreter', languages: 'language', libraries: 'library', ais: 'ai', namespaces: 'namespace', patterns: 'pattern', resolvers: 'resolver',
-                snippets: 'snippet', transforms: 'transform', types: 'type'
+                snippets: 'snippet', transformers: 'transformer', types: 'type'
             }),
             unitTypeMap: Object.freeze({
-                service: ['services', 'Service'], component: ['components', 'Component'], content: ['content', 'Collection'], context: ['context', Object], facet: ['facets', 'Facet'], gateway: ['gateways', 'Gateway'],
+                service: ['services', 'Service'], component: ['components', 'Component'], collection: ['collection', 'Collection'], context: ['context', Object], facet: ['facets', 'Facet'], gateway: ['gateways', 'Gateway'],
                 hook: ['hooks', Function], interpreter: ['interpreters', Object], language: ['languages', 'Language'], library: ['libraries', Object], ai: ['ais', 'AI'],
-                namespace: ['namespaces', URL], pattern: ['patterns', RegExp], resolver: ['resolvers', Function], snippet: ['snippets', HTMLElement], transform: ['transforms', 'Transform'],
+                namespace: ['namespaces', URL], pattern: ['patterns', RegExp], resolver: ['resolvers', Function], snippet: ['snippets', HTMLElement], transformer: ['transformers', 'Transformer'],
                 type: ['types', 'Type']
             }),
             urlAttributes: Object.freeze(['href', 'src']),
@@ -1101,8 +1101,8 @@ const UI = Object.defineProperties({}, {
                 new E.Job(async function () { await E.resolveUnit(this.datastore, 'datastore') }, `datastore:${this.datastore}`)
                 new E.Job(async function () { await E.resolveUnit(this.mesh, 'mesh') }, `mesh:${this.mesh}`)
                 for (const key in this.methods) {
-                    const method = this.methods[key], { transform, inputType, outputType } = method
-                    if (transform) new E.Job(async function () { await E.resolveUnit(transform, 'transform') }, `transform:${transform}`)
+                    const method = this.methods[key], { transformer, inputType, outputType } = method
+                    if (transformer) new E.Job(async function () { await E.resolveUnit(transformer, 'transformer') }, `transformer:${transformer}`)
                     if (inputType) new E.Job(async function () { await E.resolveUnit(inputType, 'type') }, `type:${inputType}`)
                     if (outputType) new E.Job(async function () { await E.resolveUnit(outputType, 'type') }, `type:${outputType}`)
                 }
@@ -1119,11 +1119,11 @@ const UI = Object.defineProperties({}, {
             }
 
             async run(input, envelope, facet, position, options = {}) {
-                let { method } = options, { transform, inputType, outputType } = method
+                let { method } = options, { transformer, inputType, outputType } = method
                 inputType = await E.resolveUnit(inputType, 'type')
                 if (inputType && !(await inputType.run(input, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
-                transform = await E.resolveUnit(transform, 'transform')
-                const transaction = transform ? await transform.run(input, envelope, facet, position) : input
+                transformer = await E.resolveUnit(transformer, 'transformer')
+                const transaction = transformer ? await transformer.run(input, envelope, facet, position) : input
                 outputType = await E.resolveUnit(outputType, 'type')
                 if (outputType && !(await outputType.run(transaction, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
                 const datastore = await E.resolveUnit(this.datastore, 'datastore')
@@ -1152,23 +1152,23 @@ const UI = Object.defineProperties({}, {
                 this.config = Object.freeze(config)
                 this.eventTarget = new EventTarget()
                 this.#initializeDB(Object.keys(views)).then(() => {
-                    const types = new Set(), transforms = new Set()
+                    const types = new Set(), transformers = new Set()
                     for (const name in tables) this.tables[name] = Object.freeze({ type: tables[name].type ?? name, indexes: tables[name].indexes ?? {} })
                     for (const name in queries) this.queries[name] = Object.freeze({ table: queries[name].table, type: queries[name].type ?? name })
                     for (const name in views) {
-                        const v = views[name], view = this.views[name] = Object.freeze({ tables: new Set(v.tables ?? []), queries: new Set([]), transform: v.transform })
+                        const v = views[name], view = this.views[name] = Object.freeze({ tables: new Set(v.tables ?? []), queries: new Set([]), transformer: v.transformer })
                         for (const qn of v.queries ?? []) if (queries[qn] && queries[qn].table && !view.tables.has(queries[qn].table)) view.queries.add(qn)
                     }
                     for (const name in summaries) {
-                        const s = summaries[name], summary = this.summaries[name] = Object.freeze({ tables: new Set(s.tables ?? []), queries: new Set([]), views: new Set(), transform: s.transform })
+                        const s = summaries[name], summary = this.summaries[name] = Object.freeze({ tables: new Set(s.tables ?? []), queries: new Set([]), views: new Set(), transformer: s.transformer })
                         for (const qn of s.queries ?? []) if (queries[qn] && queries[qn].table && !summary.tables.has(queries[qn].table)) summary.queries.add(qn)
                     }
                     for (const scope of [this.tables, this.queries, this.views, this.summaries]) for (const k in scope) {
                         if (scope[k].type) types.add(scope[k].type)
-                        if (scope[k].transform) transforms.add(scope[k].transform)
+                        if (scope[k].transformer) transformers.add(scope[k].transformer)
                     }
                     for (const t of types) new E.Job(async function () { await E.resolveUnit(t, 'type') }, `type:${t}`)
-                    for (const t of transforms) new E.Job(async function () { await E.resolveUnit(t, 'transform') }, `transform:${t}`)
+                    for (const t of transformers) new E.Job(async function () { await E.resolveUnit(t, 'transformer') }, `transformer:${t}`)
                     return Promise.all(promises).then(() => this.processQueue()).then(() => this.eventTarget.dispatchEvent('ready'))
                 }).catch(error => this.eventTarget.dispatchEvent(new CustomEvent('error', { detail: { error } })))
             }
@@ -1415,7 +1415,7 @@ const UI = Object.defineProperties({}, {
     Renderer: { // optimal
         enumerable: true, value: class {
             static E
-            static validEngineClasses = new Set(['AI', 'Service', 'Collection', 'Language', 'Transform'])
+            static validEngineClasses = new Set(['AI', 'Service', 'Collection', 'Language', 'Transformer'])
             observers = new WeakMap()
             constructor({ engine, matches = {}, mode, scopeSelector, name, namespace, labels = {}, defaultValue = '', envelope }) {
                 const { E, validEngineClasses } = this.constructor
@@ -1544,10 +1544,10 @@ const UI = Object.defineProperties({}, {
             toJSON() { return this.valueOf() }
         }
     },
-    Transform: { // optimal
+    Transformer: { // optimal
         enumerable: true, value: class {
             static E
-            static embeddableClasses = new Set('Service', 'Collection', 'AI', 'Transform', 'Language')
+            static embeddableClasses = new Set('Service', 'Collection', 'AI', 'Transformer', 'Language')
             isProxy
             stepIntermediates
             constructor(stepChain, isProxy) {
@@ -1596,7 +1596,7 @@ const UI = Object.defineProperties({}, {
                     }
                 }
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('transform')).run.call(this, input, envelope, options.step, options.flag) }
+            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E.runFragment('transformer')).run.call(this, input, envelope, options.step, options.flag) }
         }
     },
     Type: { // optimal
@@ -1715,7 +1715,7 @@ Object.defineProperties(UI, {
 })
 const { app } = UI
 for (const k in UI.env) Object.defineProperty(app, k, { configurable: false, enumerable: true, writable: false, value: {} })
-for (const className of ['Service', 'Collection', 'Component', 'Facet', 'Gateway', 'Job', 'Language', 'Transform', 'Type', 'Validator']) Object.defineProperty(UI[className], 'E', { configurable: false, writable: false, value: UI })
+for (const className of ['Service', 'Collection', 'Component', 'Facet', 'Gateway', 'Job', 'Language', 'Transformer', 'Type', 'Validator']) Object.defineProperty(UI[className], 'E', { configurable: false, writable: false, value: UI })
 const metaUrl = new URL(import.meta.url), initializationParameters = metaUrl.searchParams
 if (initializationParameters.has('dev')) await UI.Dev(initializationParameters.get('dev'))
 if (initializationParameters.has('packages')) {

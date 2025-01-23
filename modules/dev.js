@@ -411,11 +411,11 @@ const module = {
                         case 'templates':
                             for (const n of scopeItems) if (this.env[scope][n]) packageSource += `\nPackage.${scope}['${n}'] = E => { const t = document.createElement('template'); t.innerHTML = \`${(overrides[scope] ?? {})[n] ?? this.env[scope][n].innerHTML ?? ''}\`; return t }`
                             break
-                        case 'transforms':
+                        case 'transformers':
                             for (const n of scopeItems) {
-                                const transform = ((overrides[scope] ?? {})[n]) ?? this.env[scope][n] ?? ((this.app[scope][n] ?? [])[0])
-                                if (!transform) throw new Error(`${scope} ${n} could not be found`)
-                                packageSource += `\nPackage.${scope}['${n}'] = \`${transform}\``
+                                const transformer = ((overrides[scope] ?? {})[n]) ?? this.env[scope][n] ?? ((this.app[scope][n] ?? [])[0])
+                                if (!transformer) throw new Error(`${scope} ${n} could not be found`)
+                                packageSource += `\nPackage.${scope}['${n}'] = \`${transformer}\``
                             }
                             break
                         case 'types':

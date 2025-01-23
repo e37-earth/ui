@@ -1,7 +1,7 @@
 const autoResolverSuffixes = Object.freeze({
     ai: ['js', 'json'], service: ['js', 'json'], collection: ['js', 'json'], content: ['md', 'html', 'txt', 'js'], context: ['json', 'js'], facet: ['directives', 'js'],
     gateway: ['js'], hook: ['js'], interpreter: ['js'], library: ['js'], model: ['json', 'jsonl', 'js'], language: ['json', 'js'],
-    pattern: ['txt', 'js'], renderer: ['js'], resolver: ['js'], snippet: ['html', 'js'], transform: ['js'], type: ['js', 'schema.json', 'json', 'x', 'xdr']
+    pattern: ['txt', 'js'], renderer: ['js'], resolver: ['js'], snippet: ['html', 'js'], transformer: ['js'], type: ['js', 'schema.json', 'json', 'x', 'xdr']
 })
 
 export default async function (unitSource, unitType) {
@@ -25,7 +25,7 @@ export default async function (unitSource, unitType) {
             if ((await fetch(testUrl, { method: 'HEAD' })).ok) {
                 unitUrl.pathname = testPath
                 unitSuffix = autoResolverSuffixes[unitType][0]
-            }
+            } else this.app._failedHrefs.add(testUrl)
         } catch (e) { this.app._failedHrefs.add(testUrl) }
         if (!unitSuffix) try { if (!this.app._failedHrefs.has(unitUrl.href) && (await fetch(unitUrl.href, { method: 'HEAD' })).ok) unitSuffix = true } catch (e) { this.app._failedHrefs.add(unitUrl.href) }
         if (!unitSuffix) for (const s of (autoResolverSuffixes[unitType] ?? [])) {
@@ -37,7 +37,7 @@ export default async function (unitSource, unitType) {
                     unitUrl.pathname = testPath
                     unitSuffix = s
                     break
-                }
+                } else this.app._failedHrefs.add(testUrl)
             } catch (e) { this.app._failedHrefs.add(testUrl) }
         }
         if (!unitSuffix) return
