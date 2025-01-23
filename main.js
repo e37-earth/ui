@@ -1,4 +1,4 @@
-const ElementHTML = Object.defineProperties({}, {
+const UI = Object.defineProperties({}, {
 
     version: { enumerable: true, value: '2.0.0' }, // optimal
 
@@ -280,7 +280,6 @@ const ElementHTML = Object.defineProperties({}, {
     },
 
     Dev: { enumerable: true, value: function () { return this.runFragment('dev') } }, // optimal
-    Expose: { enumerable: true, value: function (name) { window[name || 'E'] ??= this } }, // optimal
     ImportPackage: { // optimal
         enumerable: true, value: async function (pkg, packageUrl, packageKey) {
             if (!this.isPlainObject(pkg)) return
@@ -1087,13 +1086,6 @@ const ElementHTML = Object.defineProperties({}, {
             }
         }
     },
-
-
-
-
-
-
-
     Contract: {
         enumerable: true, value: class {
             static E
@@ -1144,104 +1136,12 @@ const ElementHTML = Object.defineProperties({}, {
         }
 
     },
-
     Mesh: {
         enumerable: true, value: class {
             static E;
-
-            constructor({ entryPoints = [], trustedPeers = [] }) {
-                this.entryPoints = entryPoints
-                this.trustedPeers = trustedPeers
-                this.peers = new Set(trustedPeers)
-                this.eventTarget = new EventTarget()
-                this.transactions = new Set()
-                this.#connectToEntryPoints().then(() => {
-                    this.#initializeP2PListeners()
-                })
-            }
-
-            async #connectToEntryPoints() {
-                for (const url of this.entryPoints) {
-                    try {
-                        const entryResponse = await fetch(url)
-                        for (const peer of (await entryResponse.json())) {
-                            this.peers.add(peer)
-                        }
-                    } catch (error) {
-                        this.eventTarget.dispatchEvent(new CustomEvent('error', { detail: error }))
-                    }
-                }
-            }
-
-            #initializeP2PListeners() {
-                for (const peer of this.peers) {
-                    this.#connectToPeer(peer)
-                }
-            }
-
-            #connectToPeer(peer) {
-                // Placeholder for peer connection logic
-                console.log(`Connecting to peer: ${peer}`);
-            }
-
-            async broadcastTransaction(transaction) {
-                this.transactions.add(transaction)
-                this.eventTarget.dispatchEvent(new CustomEvent('broadcast', { detail: { transactions: [transaction] } }))
-                for (const peer of this.peers) {
-                    // Placeholder for actual P2P broadcast
-                    console.log(`Broadcasting transaction to peer: ${peer}`)
-                }
-            }
-
-            async receiveTransaction(transaction) {
-                if (!this.transactions.has(transaction)) {
-                    this.transactions.add(transaction)
-                    this.eventTarget.dispatchEvent(new CustomEvent('receive', { detail: { transactions: [transaction] } }))
-                }
-            }
+            constructor({ }) { }
         }
-
     },
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     Datastore: {
         enumerable: true, value: class {
             static E
@@ -1797,11 +1697,11 @@ const ElementHTML = Object.defineProperties({}, {
         }
     }
 })
-Object.defineProperties(ElementHTML, {
+Object.defineProperties(UI, {
     Cell: { // optimal
-        enumerable: true, value: class extends ElementHTML.State {
+        enumerable: true, value: class extends UI.State {
             constructor(name, initialValue) {
-                const { cells } = ElementHTML.app
+                const { cells } = UI.app
                 if (name && cells[name]) return cells[name]
                 super(name, initialValue)
                 if (this.name) cells[this.name] ??= this
@@ -1809,9 +1709,9 @@ Object.defineProperties(ElementHTML, {
         }
     },
     Field: { // optimal
-        enumerable: true, value: class extends ElementHTML.State {
+        enumerable: true, value: class extends UI.State {
             constructor(name, initialValue, facet) {
-                let fields = (facet instanceof ElementHTML.Facet) ? facet.fields : ((facet instanceof HTMLElement) ? ElementHTML.app._facetInstances.get(facet).fields : undefined)
+                let fields = (facet instanceof UI.Facet) ? facet.fields : ((facet instanceof HTMLElement) ? UI.app._facetInstances.get(facet).fields : undefined)
                 if (name && fields[name]) return fields[name]
                 super(name, initialValue)
                 if (name && fields) fields[name] ??= this
@@ -1819,12 +1719,11 @@ Object.defineProperties(ElementHTML, {
         }
     }
 })
-const { app } = ElementHTML
-for (const k in ElementHTML.env) Object.defineProperty(app, k, { configurable: false, enumerable: true, writable: false, value: {} })
-for (const className of ['Service', 'Collection', 'Component', 'Facet', 'Gateway', 'Job', 'Language', 'Transform', 'Type', 'Validator']) Object.defineProperty(ElementHTML[className], 'E', { configurable: false, writable: false, value: ElementHTML })
-const metaUrl = new URL(import.meta.url), initializationParameters = metaUrl.searchParams, promises = [], functionMap = { compile: 'Compile', dev: 'Dev', expose: 'Expose' }
-for (const f in functionMap) if (initializationParameters.has(f)) promises.push(ElementHTML[functionMap[f]](initializationParameters.get(f)))
-await Promise.all(promises)
+const { app } = UI
+for (const k in UI.env) Object.defineProperty(app, k, { configurable: false, enumerable: true, writable: false, value: {} })
+for (const className of ['Service', 'Collection', 'Component', 'Facet', 'Gateway', 'Job', 'Language', 'Transform', 'Type', 'Validator']) Object.defineProperty(UI[className], 'E', { configurable: false, writable: false, value: UI })
+const metaUrl = new URL(import.meta.url), initializationParameters = metaUrl.searchParams
+if (initializationParameters.has('dev')) await UI.Dev(initializationParameters.get('dev'))
 if (initializationParameters.has('packages')) {
     let imports = {}
     const importmapElement = document.head.querySelector('script[type="importmap"]'), importmap = { imports }, importPromises = new Map(), packageList = []
@@ -1840,27 +1739,14 @@ if (initializationParameters.has('packages')) {
     }
     for (const key of packageList) {
         const { protocol } = new URL(imports[key], document.baseURI)
-        if (protocol !== window.location.protocol) await ElementHTML.installGateway(protocol, ElementHTML.env.gateways[protocol] ?? window[protocol])
-        const importUrl = ElementHTML.resolveUrl(imports[key])
+        if (protocol !== window.location.protocol) await UI.installGateway(protocol, UI.env.gateways[protocol] ?? window[protocol])
+        const importUrl = UI.resolveUrl(imports[key])
         if (!importUrl) continue
         importPromises.set(importUrl, { promise: import(importUrl), key })
     }
     await Promise.all(Array.from(importPromises.values()))
-    for (const [url, imp] of importPromises) await ElementHTML.ImportPackage(await imp.promise, url, imp.key)
+    for (const [url, imp] of importPromises) await UI.ImportPackage(await imp.promise, url, imp.key)
 }
-if (initializationParameters.has('load')) await ElementHTML.Load()
-export { ElementHTML }
-
-
-
-
-
-
-
-
-
-
-
-
-
+if (initializationParameters.has('load')) await UI.Load()
+export { UI }
 
