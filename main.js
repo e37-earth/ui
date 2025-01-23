@@ -225,11 +225,12 @@ const UI = Object.defineProperties({}, {
             namespaces: { e: new URL(`./components`, import.meta.url) },
             patterns: {}, renderers: {}, resolvers: {}, snippets: {},
             transformers: {
-                '$': (E) => {
+                '$': (E37) => {
+                    const { UI } = E37
                     const proxy = new Proxy(function () { }, {
                         apply: (target, thisArg, argumentsList) => {
                             const [input, state, envelope, transformerInstance, jsonataExpression] = argumentsList, expressionKey = `(${jsonataExpression})`
-                            return E.resolveUnit('jsonata', 'library').then(jsonata => {
+                            return UI.resolveUnit('jsonata', 'library').then(jsonata => {
                                 const expression = transformerInstance.stepIntermediates.get(expressionKey)
                                     ?? transformerInstance.stepIntermediates.set(expressionKey, jsonata(`(${jsonataExpression})`)).get(expressionKey)
                                 return expression.evaluate(input, { state, envelope })
@@ -239,9 +240,10 @@ const UI = Object.defineProperties({}, {
                             return (input, state, envelope, transformerInstance) => ((input?.[prop] === undefined) ? undefined : (typeof input[prop] === 'function' ? input[prop]() : input[prop]))
                         }
                     })
-                    return (new E.Transformer(proxy, true))
+                    return (new UI.Transformer(proxy, true))
                 },
-                '$$': (E) => {
+                '$$': (E37) => {
+                    const { UI } = E37
                     const proxy = new Proxy({}, {
                         get: (target, prop, receiver) => {
                             return (input, state, envelope, transformerInstance) => {
@@ -251,28 +253,30 @@ const UI = Object.defineProperties({}, {
                             }
                         }
                     })
-                    return (new E.Transformer(proxy, true))
+                    return (new UI.Transformer(proxy, true))
                 },
                 ...Object.fromEntries((['Array']).map(c => {
-                    return [`$${c}`, (E) => {
+                    return [`$${c}`, (E37) => {
+                        const { UI } = E37
                         const proxy = new Proxy({}, {
                             get: (target, prop, receiver) => ((input) => ((window[c][prop] === undefined) ? undefined : (typeof window[c][prop] === 'function' ? window[c][prop](input) : window[c][prop])))
                         })
-                        return (new E.Transformer(proxy, true))
+                        return (new UI.Transformer(proxy, true))
                     }]
                 })),
                 ...Object.fromEntries((['Date', 'Math', 'Number', 'Object', 'String']).map(c => {
-                    return [`$${c}`, (E) => {
+                    return [`$${c}`, (E37) => {
+                        const { UI } = E37
                         const proxy = new Proxy({}, {
                             get: (target, prop, receiver) => {
                                 if ((prop === 'fromEntries') && (window[c] === Object)) return ((input) => ((window[c][prop] === undefined) ? undefined : (typeof window[c][prop] === 'function' ? window[c][prop](input) : window[c][prop])))
                                 return (input) => ((window[c][prop] === undefined) ? undefined : (typeof window[c][prop] === 'function' ? window[c][prop](...(Array.isArray(input) ? input : [input])) : window[c][prop]))
                             }
                         })
-                        return (new E.Transformer(proxy, true))
+                        return (new UI.Transformer(proxy, true))
                     }]
                 })),
-                'application/json': (E) => (new E.Transformer((input) => { try { return JSON.stringify(input) } catch (e) { } })), 'text/markdown': import.meta.resolve('./transformers/md.js'),
+                'application/json': (E37) => (new E37.UI.Transformer((input) => { try { return JSON.stringify(input) } catch (e) { } })), 'text/markdown': import.meta.resolve('./transformers/md.js'),
                 'application/x-xdr': `${import.meta.resolve('./transformers/xdr.js')}#application`, 'text/x-xdr': `${import.meta.resolve('./transformers/xdr.js')}#text`,
             },
             types: {}
@@ -870,30 +874,30 @@ const UI = Object.defineProperties({}, {
             static E37 = {}
             constructor({ service, model, promptTemplates = {} }) {
                 if (!service) return
-                const { E } = this.constructor
-                if (E.isPlainObject(promptTemplates)) this.promptTemplates = promptTemplates
+                const { E37 } = this.constructor, { UI } = E37
+                if (UI.isPlainObject(promptTemplates)) this.promptTemplates = promptTemplates
                 if (model) {
                     switch (typeof model) {
                         case 'function': this.modelWrapper = model.bind(this); break
                         case 'string':
-                            this.modelWrapper = async input => (await (this.model ??= await E.resolveUnit(model, 'model')).run(input))
-                            new E.Job(async function () { await E.resolveUnit(model, 'model') }, `model:${model}`)
+                            this.modelWrapper = async input => (await (this.model ??= await UI.resolveUnit(model, 'model')).run(input))
+                            new UI.Job(async function () { await UI.resolveUnit(model, 'model') }, `model:${model}`)
                             break
                         case 'object':
-                            if (model instanceof E.Model) this.modelWrapper = async input => (await (this.model ??= model).run(input))
-                            else if (E.isPlainObject(model)) this.modelWrapper = async input => (await (this.model ??= new E.Model(model)).run(input))
+                            if (model instanceof UI.Model) this.modelWrapper = async input => (await (this.model ??= model).run(input))
+                            else if (UI.isPlainObject(model)) this.modelWrapper = async input => (await (this.model ??= new UI.Model(model)).run(input))
                     }
                 }
                 if (service) {
                     switch (typeof service) {
                         case 'function': this.serviceWrapper = service.bind(this); break
                         case 'string':
-                            this.serviceWrapper = async input => (await (this.service ??= await E.resolveUnit(service, 'service')).run(input))
-                            new E.Job(async function () { await E.resolveUnit(service, 'service') }, `service:${service}`)
+                            this.serviceWrapper = async input => (await (this.service ??= await UI.resolveUnit(service, 'service')).run(input))
+                            new UI.Job(async function () { await UI.resolveUnit(service, 'service') }, `service:${service}`)
                             break
                         case 'object':
-                            if (service instanceof E.Service) this.serviceWrapper = async input => (await (this.service ??= service).run(input))
-                            else if (E.isPlainObject(service)) this.serviceWrapper = async input => (await (this.service ??= new E.Service(service)).run(input))
+                            if (service instanceof UI.Service) this.serviceWrapper = async input => (await (this.service ??= service).run(input))
+                            else if (UI.isPlainObject(service)) this.serviceWrapper = async input => (await (this.service ??= new UI.Service(service)).run(input))
                     }
                 }
                 this.engine = async input => ((this.model?.loaded ? this.modelWrapper : (this.serviceWrapper ?? this.modelWrapper))(input))
@@ -943,19 +947,19 @@ const UI = Object.defineProperties({}, {
         enumerable: true, value: class {
             static E37 = {}
             constructor({ service = {}, ai = {} }) {
-                const { E } = this.constructor
+                const { E37 } = this.constructor, { UI } = E37
                 switch (typeof service) {
                     case 'function': this.serviceWrapper = service.bind(this); break
                     case 'string':
-                        const [serviceName, serviceAction] = service.split(E.sys.regexp.pipeSplitterAndTrim)
-                        this.serviceWrapper = async (slug, envelope) => (await (this.service ??= await E.resolveUnit(serviceName, 'service')).run(slug, serviceAction, envelope))
-                        new E.Job(async function () { await E.resolveUnit(serviceName, 'service') }, `service:${serviceName}`)
+                        const [serviceName, serviceAction] = service.split(UI.sys.regexp.pipeSplitterAndTrim)
+                        this.serviceWrapper = async (slug, envelope) => (await (this.service ??= await UI.resolveUnit(serviceName, 'service')).run(slug, serviceAction, envelope))
+                        new UI.Job(async function () { await UI.resolveUnit(serviceName, 'service') }, `service:${serviceName}`)
                         break
                     default:
-                        if (E.isPlainObject(service)) {
+                        if (UI.isPlainObject(service)) {
                             service.contentType ??= 'text/markdown'
                             service.base ??= './content'
-                            this.serviceWrapper = async (slug, envelope) => (await (this.service ??= new E.Service(service)).run(undefined, slug, envelope))
+                            this.serviceWrapper = async (slug, envelope) => (await (this.service ??= new UI.Service(service)).run(undefined, slug, envelope))
                         }
                 }
                 if (!this.serviceWrapper) return
@@ -963,14 +967,14 @@ const UI = Object.defineProperties({}, {
                     switch (typeof ai) {
                         case 'function': this.aiWrapper = ai.bind(this); break
                         case 'string':
-                            const [aiName, aiPrompt] = ai.split(E.sys.regexp.pipeSplitterAndTrim)
-                            this.aiWrapper = async (prompt) => (await (this.ai ??= await E.resolveUnit(aiName, 'ai')).run(prompt, aiPrompt, envelope))
-                            new E.Job(async function () { await E.resolveUnit(aiName, 'ai') }, `ai:${aiName}`)
+                            const [aiName, aiPrompt] = ai.split(UI.sys.regexp.pipeSplitterAndTrim)
+                            this.aiWrapper = async (prompt) => (await (this.ai ??= await UI.resolveUnit(aiName, 'ai')).run(prompt, aiPrompt, envelope))
+                            new UI.Job(async function () { await UI.resolveUnit(aiName, 'ai') }, `ai:${aiName}`)
                             break
                         default:
-                            if (E.isPlainObject(ai)) this.aiWrapper = async (prompt) => (await (this.service ??= new E.AI(engine)).run(prompt, undefined, envelope))
+                            if (UI.isPlainObject(ai)) this.aiWrapper = async (prompt) => (await (this.service ??= new UI.AI(engine)).run(prompt, undefined, envelope))
                     }
-                    if (this.aiWrapper) this.engine = async (slug, envelope) => { return this.aiWrapper(E.resolveVariable(await this.serviceWrapper(slug, envelope), envelope, { merge: true })) }
+                    if (this.aiWrapper) this.engine = async (slug, envelope) => { return this.aiWrapper(UI.resolveVariable(await this.serviceWrapper(slug, envelope), envelope, { merge: true })) }
                 }
                 this.engine ??= this.serviceWrapper
             }
@@ -990,22 +994,23 @@ const UI = Object.defineProperties({}, {
             static get observedAttributes() { return (super.observedAttributes || []).concat([]) }
             #observer
             #resolveScopedUrl(url) {
+                const { E37 } = this.constructor, { UI } = E37
                 if (!url) return
                 for (const p of ['component', 'components', 'package']) if (url.startsWith(`${p}://`)) return url.replace(`${p}:/`, base[p]).replace('//', '/')
-                return E.resolveUrl(url, base.component)
+                return UI.resolveUrl(url, base.component)
             }
             constructor() {
-                const { E, base } = this.constructor
-                base.package ??= E.resolveUrl('./')
-                base.components ??= E.resolveUrl('./components/', base.package)
+                const { E37, base } = this.constructor, { UI } = E37
+                base.package ??= UI.resolveUrl('./')
+                base.components ??= UI.resolveUrl('./components/', base.package)
                 this.constructor.layout ??= 'layout.html'
             }
             attributeChangedCallback(attrName, oldVal, newVal) { if (oldVal !== newVal) this[attrName] = newVal }
             connectedCallback() {
-                const { E, base, mode, layout, facet: constructorFacet } = this.constructor, [packageKey, ...componentPathParts] = this.tagName.toLowerCase().split('-'),
+                const { E37, base, mode, layout, facet: constructorFacet } = this.constructor, { UI } = E37, [packageKey, ...componentPathParts] = this.tagName.toLowerCase().split('-'),
                     componentName = componentPathParts.slice(-1)[0], componentPath = componentPathParts.join('/')
                 this.constructor.package.key ??= packageKey
-                base.component ??= E.resolveUrl(componentPath, base.components)
+                base.component ??= UI.resolveUrl(componentPath, base.components)
                 this.constructor.name ??= componentName
                 if (layout) {
                     this.attachShadow({ mode: mode || 'open' })
@@ -1013,7 +1018,7 @@ const UI = Object.defineProperties({}, {
                         if (layout instanceof HTMLTemplateElement) res(layout.content.cloneNode(true).textContent)
                         else if (layout instanceof Promise) res(layout)
                         else if (typeof layout === 'string') {
-                            fetch(E.resolveUrl(layout, base.component)).then(r => r.text()).then(t => {
+                            fetch(UI.resolveUrl(layout, base.component)).then(r => r.text()).then(t => {
                                 const templateElement = document.createElement('template')
                                 templateElement.textContent = t
                                 this.constructor.layout = templateElement
@@ -1023,9 +1028,9 @@ const UI = Object.defineProperties({}, {
                         else res()
                     })).then(layoutHtml => {
                         if (layoutHtml === undefined) return
-                        const fields = Object.freeze({ ...this.dataset }), labels = Object.freeze(E.flatten(this.valueOf()))
-                        E.createEnvelope({ labels, fields }).then(envelope => {
-                            this.shadowRoot.innerHTML = E.resolveVariable(layoutHtml, envelope, { merge: true })
+                        const fields = Object.freeze({ ...this.dataset }), labels = Object.freeze(UI.flatten(this.valueOf()))
+                        UI.createEnvelope({ labels, fields }).then(envelope => {
+                            this.shadowRoot.innerHTML = UI.resolveVariable(layoutHtml, envelope, { merge: true })
                             let urlAttributesSelector = ''
                             for (const a of this.sys.urlAttributes) urlAttributesSelector += `[${a}]`
                             this.resolveUrlAttributes(this.shadowRoot.querySelectorAll(urlAttributesSelector), this.sys.urlAttributes)
@@ -1039,19 +1044,19 @@ const UI = Object.defineProperties({}, {
                 if (facet) {
                     if (constructorFacet) {
                         Promise.resolve(constructorFacet).then(facetData => {
-                            this.facet = facetData instanceof E.Facet ? facetData : new E.Facet({ ...facetData, root: this.shadowRoot })
+                            this.facet = facetData instanceof UI.Facet ? facetData : new UI.Facet({ ...facetData, root: this.shadowRoot })
                         });
                     } else {
                         constructor.facet = (facet instanceof Promise ? facet
-                            : (typeof facet === 'string' ? fetch(E.resolveUrl(facet, base.component)).then(r => r.text()).then(t => ({ directives: t })) : Promise.resolve(facet))
+                            : (typeof facet === 'string' ? fetch(UI.resolveUrl(facet, base.component)).then(r => r.text()).then(t => ({ directives: t })) : Promise.resolve(facet))
                         ).then(async resolvedFacet => {
                             let facetData
-                            if (resolvedFacet instanceof E.Facet) facetData = resolvedFacet
-                            else if (E.isPlainObject(resolvedFacet)) {
-                                const facetInstance = new E.Facet({ ...resolvedFacet, root: this.shadowRoot })
+                            if (resolvedFacet instanceof UI.Facet) facetData = resolvedFacet
+                            else if (UI.isPlainObject(resolvedFacet)) {
+                                const facetInstance = new UI.Facet({ ...resolvedFacet, root: this.shadowRoot })
                                 facetData = await facetInstance.export()
                             }
-                            this.facet = facetData instanceof E.Facet ? facetData : new E.Facet({ ...facetData, root: this.shadowRoot })
+                            this.facet = facetData instanceof UI.Facet ? facetData : new UI.Facet({ ...facetData, root: this.shadowRoot })
                             constructor.facet = facetData
                             return facetData
                         })
@@ -1064,9 +1069,9 @@ const UI = Object.defineProperties({}, {
                 if (this.facet) this.facet.stop()
             }
             dispatchEvent(event) {
-                const { E } = this.constructor, eventProps = { detail: event.detail, bubbles: event.bubbles, cancelable: event.cancelable, composed: event.composed },
-                    defaultEventTypes = E.sys
-                let virtualElement = E.app._components.virtualsFromNatives.get(this), nativeElement = E.app._components.nativesFromVirtuals.get(this),
+                const { E37 } = this.constructor, { UI } = E37, eventProps = { detail: event.detail, bubbles: event.bubbles, cancelable: event.cancelable, composed: event.composed },
+                    defaultEventTypes = UI.sys
+                let virtualElement = UI.app._components.virtualsFromNatives.get(this), nativeElement = UI.app._components.nativesFromVirtuals.get(this),
                     eventName = event.type === 'default' ? undefined : event.type
                 if (virtualElement || nativeElement) {
                     virtualElement ??= this
@@ -1074,7 +1079,7 @@ const UI = Object.defineProperties({}, {
                     eventName ??= virtualElement.constructor.events?.default ?? defaultEventTypes[nativeElement.tagName.toLowerCase()] ?? 'click'
                     return virtualElement.dispatchEvent(new CustomEvent(eventName, eventProps)) && nativeElement.dispatchEvent(new CustomEvent(eventName, eventProps))
                 }
-                eventName ??= instance instanceof E.Component ? (instance.constructor.events?.default) : defaultEventTypes[instance.tagName.toLowerCase()]
+                eventName ??= instance instanceof UI.Component ? (instance.constructor.events?.default) : defaultEventTypes[instance.tagName.toLowerCase()]
                 return super.dispatchEvent(new CustomEvent(eventName ?? 'click', eventProps))
             }
             readyCallback() { }
@@ -1093,42 +1098,46 @@ const UI = Object.defineProperties({}, {
             eventTarget
 
             constructor({ methods = {}, datastore, mesh, ...rest }) {
+                const { E37 } = this.constructor, { UI } = E37
                 this.methods = methods;
                 this.datastore = datastore;
                 this.mesh = mesh;
                 this.transactions = [];
                 this.eventTarget = new EventTarget()
-                new E.Job(async function () { await E.resolveUnit(this.datastore, 'datastore') }, `datastore:${this.datastore}`)
-                new E.Job(async function () { await E.resolveUnit(this.mesh, 'mesh') }, `mesh:${this.mesh}`)
+                new UI.Job(async function () { await UI.resolveUnit(this.datastore, 'datastore') }, `datastore:${this.datastore}`)
+                new UI.Job(async function () { await UI.resolveUnit(this.mesh, 'mesh') }, `mesh:${this.mesh}`)
                 for (const key in this.methods) {
                     const method = this.methods[key], { transformer, inputType, outputType } = method
-                    if (transformer) new E.Job(async function () { await E.resolveUnit(transformer, 'transformer') }, `transformer:${transformer}`)
-                    if (inputType) new E.Job(async function () { await E.resolveUnit(inputType, 'type') }, `type:${inputType}`)
-                    if (outputType) new E.Job(async function () { await E.resolveUnit(outputType, 'type') }, `type:${outputType}`)
+                    if (transformer) new UI.Job(async function () { await UI.resolveUnit(transformer, 'transformer') }, `transformer:${transformer}`)
+                    if (inputType) new UI.Job(async function () { await UI.resolveUnit(inputType, 'type') }, `type:${inputType}`)
+                    if (outputType) new UI.Job(async function () { await UI.resolveUnit(outputType, 'type') }, `type:${outputType}`)
                 }
             }
 
             async getTransaction(txId) {
-                const datastore = await E.resolveUnit(this.datastore, 'datastore')
+                const { E37 } = this.constructor, { UI } = E37
+                const datastore = await UI.resolveUnit(this.datastore, 'datastore')
                 if (datastore) return await datastore.get(txId)
             }
 
             async getTransactionList() {
-                const datastore = await E.resolveUnit(this.datastore, 'datastore')
+                const { E37 } = this.constructor, { UI } = E37
+                const datastore = await UI.resolveUnit(this.datastore, 'datastore')
                 if (datastore) return await datastore.list()
             }
 
             async run(input, envelope, facet, position, options = {}) {
+                const { E37 } = this.constructor, { UI } = E37
                 let { method } = options, { transformer, inputType, outputType } = method
-                inputType = await E.resolveUnit(inputType, 'type')
+                inputType = await UI.resolveUnit(inputType, 'type')
                 if (inputType && !(await inputType.run(input, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
-                transformer = await E.resolveUnit(transformer, 'transformer')
+                transformer = await UI.resolveUnit(transformer, 'transformer')
                 const transaction = transformer ? await transformer.run(input, envelope, facet, position) : input
-                outputType = await E.resolveUnit(outputType, 'type')
+                outputType = await UI.resolveUnit(outputType, 'type')
                 if (outputType && !(await outputType.run(transaction, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
-                const datastore = await E.resolveUnit(this.datastore, 'datastore')
+                const datastore = await UI.resolveUnit(this.datastore, 'datastore')
                 if (datastore) await this.datastore.add(transaction)
-                const mesh = await E.resolveUnit(this.mesh, 'mesh')
+                const mesh = await UI.resolveUnit(this.mesh, 'mesh')
                 if (mesh) mesh.broadcastTransaction(transaction)
                 return transaction
             }
@@ -1148,6 +1157,7 @@ const UI = Object.defineProperties({}, {
             #queue = []
             eventTarget
             constructor({ name, config = {}, tables = {}, queries = {}, views = {}, summaries = {} }) {
+                const { E37 } = this.constructor, { UI } = E37
                 this.name = name
                 this.config = Object.freeze(config)
                 this.eventTarget = new EventTarget()
@@ -1167,8 +1177,8 @@ const UI = Object.defineProperties({}, {
                         if (scope[k].type) types.add(scope[k].type)
                         if (scope[k].transformer) transformers.add(scope[k].transformer)
                     }
-                    for (const t of types) new E.Job(async function () { await E.resolveUnit(t, 'type') }, `type:${t}`)
-                    for (const t of transformers) new E.Job(async function () { await E.resolveUnit(t, 'transformer') }, `transformer:${t}`)
+                    for (const t of types) new UI.Job(async function () { await UI.resolveUnit(t, 'type') }, `type:${t}`)
+                    for (const t of transformers) new UI.Job(async function () { await UI.resolveUnit(t, 'transformer') }, `transformer:${t}`)
                     return Promise.all(promises).then(() => this.processQueue()).then(() => this.eventTarget.dispatchEvent('ready'))
                 }).catch(error => this.eventTarget.dispatchEvent(new CustomEvent('error', { detail: { error } })))
             }
@@ -1203,6 +1213,7 @@ const UI = Object.defineProperties({}, {
             running
             statements = []
             constructor(params = {}) {
+                const { E37 } = this.constructor, { UI } = E37
                 if (typeof params === 'string') params = { directives: params }
                 const { conditions, directives, statements, fields, running, root } = params
                 if (!(directives || statements)) return
@@ -1214,7 +1225,7 @@ const UI = Object.defineProperties({}, {
                 this.eventTarget = new EventTarget()
                 this.running = running ?? true
                 const { E } = this.constructor
-                if (conditions && E.isPlainObject(conditions)) promise = Promise.all([promise, this.setupConditions(conditions)])
+                if (conditions && UI.isPlainObject(conditions)) promise = Promise.all([promise, this.setupConditions(conditions)])
                 promise.then(() => this.init())
             }
             async export() {
@@ -1223,9 +1234,10 @@ const UI = Object.defineProperties({}, {
                 return { statements: this.statements, fields: this.fields }
             }
             async init() {
+                const { E37 } = this.constructor, { UI } = E37
                 Object.freeze(this.statements)
                 Object.freeze(this.fields)
-                const { E, saveToLabel } = this.constructor, { interpreters } = E.env, interpreterKeys = Array.from(interpreters.keys()), { descriptors, eventTarget, statements } = this
+                const { saveToLabel } = this.constructor, { interpreters } = UI.env, interpreterKeys = Array.from(interpreters.keys()), { descriptors, eventTarget, statements } = this
                 let statementIndex = -1
                 for (const statement of statements) {
                     statementIndex++
@@ -1237,22 +1249,22 @@ const UI = Object.defineProperties({}, {
                         stepIndex++
                         const position = `${statementIndex}-${stepIndex}`, { label, labelMode, defaultExpression, stepEnvelope } = step, { interpreter: interpreterKey, variables } = stepEnvelope,
                             descriptor = { ...(stepEnvelope.descriptor ?? {}) }, { signal } = descriptor,
-                            envelope = await E.createEnvelope({ ...stepEnvelope, descriptor, fields: Object.freeze(this.valueOf()), labels, variables })
+                            envelope = await UI.createEnvelope({ ...stepEnvelope, descriptor, fields: Object.freeze(this.valueOf()), labels, variables })
                         let interpreter, matcher
                         for (matcher of interpreterKeys) if (matcher.toString() === interpreterKey) break
                         if (matcher) interpreter = interpreters.get(matcher)
                         if (!interpreter) continue
                         const { binder, handler } = interpreter
                         if (signal) descriptor.signal = (this.#controllers[position] = new AbortController()).signal
-                        if (binder) Object.assign(descriptor, (await binder.call(E, this, position, envelope) ?? {}))
+                        if (binder) Object.assign(descriptor, (await binder.call(E37, this, position, envelope) ?? {}))
                         descriptors[position] = Object.freeze(descriptor)
-                        eventTarget.addEventListener(`done-${position}`, async event => saveToLabel(stepIndex, label, event.detail, labelMode, labels, this.fields, E.app.cells), { signal: this.#controller.signal })
+                        eventTarget.addEventListener(`done-${position}`, async event => saveToLabel(stepIndex, label, event.detail, labelMode, labels, this.fields, UI.app.cells), { signal: this.#controller.signal })
                         const previousStepIndex = stepIndex ? stepIndex - 1 : undefined
                         eventTarget.addEventListener(stepIndex ? `done-${statementIndex}-${previousStepIndex}` : 'init', async () => {
                             if (!this.running) return
-                            const handlerEnvelope = await E.createEnvelope({ ...envelope, fields: Object.freeze(this.valueOf()), labels: Object.freeze({ ...labels }) }),
-                                value = previousStepIndex !== undefined ? labels[`${previousStepIndex}`] : undefined, detail = await handler.call(E, this, position, handlerEnvelope, value)
-                                    ?? (defaultExpression ? E.resolveVariable(defaultExpression, { ...handlerEnvelope, value }) : undefined)
+                            const handlerEnvelope = await UI.createEnvelope({ ...envelope, fields: Object.freeze(this.valueOf()), labels: Object.freeze({ ...labels }) }),
+                                value = previousStepIndex !== undefined ? labels[`${previousStepIndex}`] : undefined, detail = await handler.call(E37, this, position, handlerEnvelope, value)
+                                    ?? (defaultExpression ? UI.resolveVariable(defaultExpression, { ...handlerEnvelope, value }) : undefined)
                             if (detail !== undefined) eventTarget.dispatchEvent(new CustomEvent(`done-${position}`, { detail }))
                         }, { signal: this.#controller.signal })
                     }
@@ -1265,6 +1277,7 @@ const UI = Object.defineProperties({}, {
             async run() { return (this.running = true) }
             async setupConditions(conditions) { return (await this.constructor.E37.UI.runFragment('facet')).setupConditions.call(this, conditions) }
             async setupStatements(statements, fields) {
+                const { E37 } = this.constructor, { UI } = E37
                 for (const statement of statements) {
                     if (!(statement?.labels && statement?.steps)) continue
                     Object.seal(statement.labels)
@@ -1272,7 +1285,7 @@ const UI = Object.defineProperties({}, {
                     Object.freeze(statement)
                     this.statements.push(statement)
                 }
-                for (const name in fields) new E.Field(name, fields[name], this)
+                for (const name in fields) new UI.Field(name, fields[name], this)
             }
             async stop() {
                 this.#controller.abort()
@@ -1325,9 +1338,9 @@ const UI = Object.defineProperties({}, {
                 }))
             }
             constructor(jobFunction, id) {
-                const { E, queue } = this.constructor
+                const { E37, queue } = this.constructor, { UI } = E37
                 if (typeof jobFunction !== 'function') return
-                this.id = id ?? E.generateUuid()
+                this.id = id ?? UI.generateUuid()
                 if (queue.get(this.id)) return
                 this.jobFunction = jobFunction
                 queue.set(this.id, this)
@@ -1354,10 +1367,10 @@ const UI = Object.defineProperties({}, {
             static E37 = {}
             static validEngineClasses = new Set(['AI', 'Service'])
             constructor({ defaultTokenValue = '', tokens = {}, virtual = {}, envelope }) {
-                const { E } = this.constructor
-                if (!E.isPlainObject(tokens)) return
-                if (!E.isPlainObject(virtual)) virtual = undefined
-                if (!E.isPlainObject(envelope)) envelope = undefined
+                const { E37 } = this.constructor, { UI } = E37
+                if (!UI.isPlainObject(tokens)) return
+                if (!UI.isPlainObject(virtual)) virtual = undefined
+                if (!UI.isPlainObject(envelope)) envelope = undefined
                 switch (typeof virtual.engine) {
                     case 'string': break
                     case 'object':
@@ -1372,10 +1385,10 @@ const UI = Object.defineProperties({}, {
                 if (!(typeof defaultTokenValue === 'string' || defaultTokenValue === true)) defaultTokenValue = ''
                 Object.assign(this, { defaultTokenValue, tokens: Object.freeze(tokens), virtual })
                 if (typeof virtual.engine === 'string') {
-                    const [engineType, engineNamePlusIntent] = virtual.engine.trim().split(E.sys.regexp.colonSplitter), [engineName, engineIntent] = engineNamePlusIntent.split(E.sys.regexp.pipeSplitter),
-                        loadEngineJob = new E.Job(async function () { await await E.resolveUnit(engineName, engineType) }, `${engineType}:${engineName}`)
+                    const [engineType, engineNamePlusIntent] = virtual.engine.trim().split(UI.sys.regexp.colonSplitter), [engineName, engineIntent] = engineNamePlusIntent.split(UI.sys.regexp.pipeSplitter),
+                        loadEngineJob = new UI.Job(async function () { await await UI.resolveUnit(engineName, engineType) }, `${engineType}:${engineName}`)
                     virtual.engine = loadEngineJob.complete.then(async () => {
-                        const engine = await E.resolveUnit(engineName, engineType), validEngine = false
+                        const engine = await UI.resolveUnit(engineName, engineType), validEngine = false
                         for (const n of validEngineClasses.keys()) if (validEngine ||= (this.engine instanceof E[n])) break
                         if (!validEngine) return
                         virtual.engine = engine
@@ -1418,7 +1431,7 @@ const UI = Object.defineProperties({}, {
             static validEngineClasses = new Set(['AI', 'Service', 'Collection', 'Language', 'Transformer'])
             observers = new WeakMap()
             constructor({ engine, matches = {}, mode, scopeSelector, name, namespace, labels = {}, defaultValue = '', envelope }) {
-                const { E, validEngineClasses } = this.constructor
+                const { E37, validEngineClasses } = this.constructor, { UI } = E37
                 if (!engine) return
                 switch (typeof engine) {
                     case 'string': this.engine = engine; break
@@ -1429,8 +1442,8 @@ const UI = Object.defineProperties({}, {
                         break
                     default: return
                 }
-                if ((typeof mode !== 'string') || (!(name && (typeof name === 'string'))) || !E.isPlainObject(matches) || !E.isPlainObject(labels) || !E.isPlainObject(envelope)) return
-                name = (name && typeof name === 'string') ? name.replaceAll(E.sys.regexp.notAlphaNumeric, '').toLowerCase() : E.generateUuid(true)
+                if ((typeof mode !== 'string') || (!(name && (typeof name === 'string'))) || !UI.isPlainObject(matches) || !UI.isPlainObject(labels) || !UI.isPlainObject(envelope)) return
+                name = (name && typeof name === 'string') ? name.replaceAll(UI.sys.regexp.notAlphaNumeric, '').toLowerCase() : UI.generateUuid(true)
                 mode = mode ? mode.trim().toLowerCase() : name
                 if (!mode && !Object.keys(this.matches).length) return
                 if (typeof scopeSelector !== 'string') scopeSelector = undefined
@@ -1473,7 +1486,7 @@ const UI = Object.defineProperties({}, {
                 }
                 const selectors = {}
                 for (const key in this.matches) {
-                    const attributePair = this.matches[key].match(E.sys.regexp.extractAttributes), isAttr = key[0] === '@'
+                    const attributePair = this.matches[key].match(UI.sys.regexp.extractAttributes), isAttr = key[0] === '@'
                     if (!attributePair.length || (isAttr && (attributePair.length < 2))) { delete this.matches[key]; continue }
                     for (const attrName of attributePair) attributes.add(attrName)
                     const selObj = { key, [isAttr ? 'target' : 'token']: attributePair.pop() }
@@ -1505,12 +1518,12 @@ const UI = Object.defineProperties({}, {
         enumerable: true, value: class {
             static E37 = {}
             constructor({ base = '.', actions = {}, options = {}, contentType = 'application/json', acceptType, preProcessor, postProcessor, errorProcessor }) {
-                const { E } = this.constructor
-                Object.assign(this, { E, base: this.resolveUrl(base), actions, options, contentType, acceptType, preProcessor, postProcessor, errorProcessor })
+                const { E37 } = this.constructor, { UI } = E37
+                Object.assign(this, { E37, base: this.resolveUrl(base), actions, options, contentType, acceptType, preProcessor, postProcessor, errorProcessor })
                 this.acceptType ??= this.contentType
-                new E.Job(async function () { await this.resolveUnit(this.contentType, 'transformer') }, `transformer:${this.contentType}`)
-                if (this.acceptType && (this.acceptType !== this.contentType)) new E.Job(async function () { await this.resolveUnit(this.acceptType, 'transformer') }, `transformer:${this.acceptType}`)
-                for (const p of ['preProcessor', 'postProcessor', 'errorProcessor']) if (this[p]) new E.Job(async function () { await this.resolveUnit(this[p], 'transformer') }, `transformer:${this[p]}`)
+                new UI.Job(async function () { await this.resolveUnit(this.contentType, 'transformer') }, `transformer:${this.contentType}`)
+                if (this.acceptType && (this.acceptType !== this.contentType)) new UI.Job(async function () { await this.resolveUnit(this.acceptType, 'transformer') }, `transformer:${this.acceptType}`)
+                for (const p of ['preProcessor', 'postProcessor', 'errorProcessor']) if (this[p]) new UI.Job(async function () { await this.resolveUnit(this[p], 'transformer') }, `transformer:${this[p]}`)
                 if (this.actions) Object.freeze(this.actions)
                 if (this.options) Object.freeze(this.options)
             }
@@ -1551,6 +1564,7 @@ const UI = Object.defineProperties({}, {
             isProxy
             stepIntermediates
             constructor(stepChain, isProxy) {
+                const { E37 } = this.constructor, { UI } = E37
                 if (!stepChain) return
                 const { E } = this.constructor
                 this.stepIntermediates = new Map()
@@ -1578,17 +1592,17 @@ const UI = Object.defineProperties({}, {
                         }
                         else if (typeof stepValue === 'string') {
                             this.steps.set(stepKey, async (input, state, envelope, facet) => {
-                                const jsonata = (E.app.libraries.jsonata ??= await E.resolveUnit('jsonata', 'library')),
+                                const jsonata = (UI.app.libraries.jsonata ??= await UI.resolveUnit('jsonata', 'library')),
                                     expression = this.stepIntermediates.get(stepKey) ?? this.stepIntermediates.set(stepKey, jsonata(`(${step.trim()})`)).get(stepKey)
                                 return expression.evaluate(input, { state, envelope })
                             })
                         }
                         else if (this.isPlainObject(stepValue) && (Object.keys(stepValue).length === 1)) {
-                            const { unitType, unitNamePlusIntent } = stepValue.entries()[0], [unitName, unitIntent] = unitNamePlusIntent.split(E.sys.regexp.pipeSplitter),
-                                stepClassName = (E.sys.unitTypeMap[unitType] ?? [])[1]
+                            const { unitType, unitNamePlusIntent } = stepValue.entries()[0], [unitName, unitIntent] = unitNamePlusIntent.split(UI.sys.regexp.pipeSplitter),
+                                stepClassName = (UI.sys.unitTypeMap[unitType] ?? [])[1]
                             if (!this.constructor.embeddableClasses.has(stepClassName)) continue
                             this.steps.set(stepKey, async (input, state, envelope, facet) => {
-                                const unit = await E.resolveUnit(unitType, unitKey)
+                                const unit = await UI.resolveUnit(unitType, unitKey)
                                 if (!unit) return
                                 return unit(input, state, envelope, facet)
                             })
@@ -1603,12 +1617,12 @@ const UI = Object.defineProperties({}, {
         enumerable: true, value: class {
             static E37 = {}
             constructor(typeDefinition, typeName) {
-                const { E } = this.constructor
+                const { E37 } = this.constructor, { UI } = E37
                 if (!typeDefinition) return
                 switch (typeof typeDefinition) {
                     case 'function': this.engine = typeDefinition.bind(E); break
                     case 'object':
-                        if (typeDefinition instanceof E.Validator) {
+                        if (typeDefinition instanceof UI.Validator) {
                             this.engine = async (input, verbose, envelope) => {
                                 const [valid, validation = {}] = await typeDefinition.constructor.run.call(typeDefinition, input, verbose, envelope)
                                 return verbose ? validation : valid
@@ -1617,7 +1631,7 @@ const UI = Object.defineProperties({}, {
                             if (!this.isPlainObject(typeDefinition)) return
                             if (this.isPlainObject(typeDefinition.library) && Array.isArray(typeDefinition.types)) {
                                 this.engine = async (input, verbose) => {
-                                    const xdr = await E.resolveUnit('xdr', 'library')
+                                    const xdr = await UI.resolveUnit('xdr', 'library')
                                     this.typeDefinition ??= await xdr.import(typeDefinition, undefined, {}, 'json')
                                     let valid = false, errors
                                     try { valid = !!xdr.serialize(input, this.typeDefinition) } catch (e) { errors = e }
@@ -1625,7 +1639,7 @@ const UI = Object.defineProperties({}, {
                                 }
                             } else {
                                 this.engine = async (input, verbose) => {
-                                    const jsonSchema = await E.resolveUnit('schema', 'library')
+                                    const jsonSchema = await UI.resolveUnit('schema', 'library')
                                     if (!this.typeDefinition) {
                                         this.typeDefinition = new jsonSchema(typeDefinition)
                                         await this.typeDefinition.deref()
@@ -1638,7 +1652,7 @@ const UI = Object.defineProperties({}, {
                         break
                     case 'string':
                         this.engine = async (input, verbose) => {
-                            const xdr = await E.resolveUnit('xdr', 'library')
+                            const xdr = await UI.resolveUnit('xdr', 'library')
                             this.typeDefinition ??= await xdr.factory(typeDefinition, typeName)
                             let valid = false, errors
                             try { valid = !!xdr.serialize(input, this.typeDefinition) } catch (e) { errors = e }

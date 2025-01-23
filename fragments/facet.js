@@ -83,7 +83,7 @@ export default {
                     }
                 }
                 if (stepEnvelope === undefined) {
-                    if (dev) dev.print(`No matching interpreter is available for the expression at position '${statementIndex}-${stepIndex}' in: ${handlerExpression}`, 'warning')
+                    if (E37.UI.modules.dev) E37.UI.modules.dev.print(`No matching interpreter is available for the expression at position '${statementIndex}-${stepIndex}' in: ${handlerExpression}`, 'warning')
                     let matcher, name = 'console'
                     for (const [k, v] of interpreters) if (v.name === name) { matcher = k; break }
                     if (!matcher) continue
