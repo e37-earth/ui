@@ -1,8 +1,8 @@
 const UI = Object.defineProperties({}, {
 
-    version: { enumerable: true, value: '2.0.0' }, // optimal
+    version: { enumerable: true, value: '2.0.0' }, 
 
-    env: { // optimal
+    env: { 
         enumerable: true, value: {
             ais: {}, collections: {}, components: {}, context: {}, facets: {}, gateways: {}, hooks: {},
             interpreters: new Map([
@@ -283,8 +283,8 @@ const UI = Object.defineProperties({}, {
         }
     },
 
-    Dev: { enumerable: true, value: function (globalKey) { return this.runFragment('dev', globalKey) } }, // optimal
-    ImportPackage: { // optimal
+    Dev: { enumerable: true, value: function (globalKey) { return this.runFragment('dev', globalKey) } }, 
+    ImportPackage: { 
         enumerable: true, value: async function (pkg, packageUrl, packageKey) {
             if (!this.isPlainObject(pkg)) return
             if (typeof pkg.hooks?.prePackageInstall === 'function') pkg = (await pkg.hooks.prePackageInstall(this)) ?? pkg
@@ -299,7 +299,7 @@ const UI = Object.defineProperties({}, {
             if (typeof postPackageInstall === 'function') await postPackageInstall(this)
         }
     },
-    Mount: { // optimal
+    Mount: { 
         enumerable: true, value: async function () {
             const { env, app, sys, useUnit } = this, { interpreters } = env, { _eventTarget } = app
             for (const [, interpreter] of interpreters) for (const p of ['handler', 'binder']) if (interpreter[p]) interpreter[p] = interpreter[p].bind(this)
@@ -322,7 +322,7 @@ const UI = Object.defineProperties({}, {
         }
     },
 
-    createEnvelope: { // optimal
+    createEnvelope: { 
         enumerable: true, value: async function (value = {}) {
             return Object.freeze({ ...(this.isPlainObject(value) ? value : { value }), cells: await this.flatten(this.app.cells), context: Object.freeze({ ...this.env.context, ...this.app.context }) })
         }
@@ -335,29 +335,29 @@ const UI = Object.defineProperties({}, {
             return Object.freeze(obj)
         }
     },
-    flatten: { enumerable: true, value: async function (value, event) { return this.runFragment('flatten', value, event) } }, // optimal
+    flatten: { enumerable: true, value: async function (value, event) { return this.runFragment('flatten', value, event) } }, 
     generateUuid: {//optimal
         enumerable: true, value: function (noDashes) {
             return crypto?.randomUUID()?.[noDashes ? 'replace' : 'toString'](this.sys.regexp.dash, '')
                 ?? (noDashes ? 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx' : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx').replace(this.sys.regexp.xy, c => ((c === 'x' ? Math.random() * 16 : (Math.random() * 4 + 8)) | 0).toString(16))
         }
     },
-    getCustomTag: { // optimal
+    getCustomTag: { 
         enumerable: true, value: function (element) {
             let tag = (element instanceof HTMLElement) ? (element.getAttribute('is') || element.tagName).toLowerCase() : `${element}`.toLowerCase()
             return tag.includes('-') ? tag : undefined
         }
     },
-    isPlainObject: { // optimal
+    isPlainObject: { 
         enumerable: true, value: function (obj) {
             if (!obj) return false
             const proto = Object.getPrototypeOf(obj)
             return (proto === null) || (proto === Object.prototype) || (proto.constructor === Object)
         }
     },
-    isWrappedVariable: { enumerable: true, value: function (expression) { return ((typeof expression === 'string') && (expression[0] === '$') && (expression[1] === '{') && (expression.endsWith('}'))) } }, // optimal
-    parse: { enumerable: true, value: async function (input, contentType) { return this.runFragment('parse', input, contentType) } }, // optimal
-    render: { enumerable: true, value: async function (element, data) { return this.runFragment('render', element, data) } }, // optimal
+    isWrappedVariable: { enumerable: true, value: function (expression) { return ((typeof expression === 'string') && (expression[0] === '$') && (expression[1] === '{') && (expression.endsWith('}'))) } }, 
+    parse: { enumerable: true, value: async function (input, contentType) { return this.runFragment('parse', input, contentType) } }, 
+    render: { enumerable: true, value: async function (element, data) { return this.runFragment('render', element, data) } }, 
     resolveImport: { //optimal
         enumerable: true, value: async function (importHref, returnWholeModule, isWasm) {
             const { hash = '#default', origin, pathname } = (importHref instanceof URL) ? importHref : this.resolveUrl(importHref, undefined, true), url = `${origin}${pathname}`,
@@ -365,7 +365,7 @@ const UI = Object.defineProperties({}, {
             return returnWholeModule ? module : module[hash ? hash.slice(1) : 'default']
         }
     },
-    resolveScope: { // optimal
+    resolveScope: { 
         enumerable: true, value: function (scopeStatement, element) {
             element = this.app._components.nativesFromVirtuals.get(element) ?? element
             if (!scopeStatement) return element.parentElement
@@ -386,7 +386,7 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    resolveScopedSelector: { // optimal
+    resolveScopedSelector: { 
         enumerable: true, value: async function (scopedSelector, element) {
             const { impliedScopes, regexp } = this.sys, { pipeSplitter } = regexp
             element &&= this.app._components.nativesFromVirtuals.get(element) ?? element
@@ -402,7 +402,7 @@ const UI = Object.defineProperties({}, {
             return element ? (await this.resolveSelector(scopedSelector, scope)) : { selector: scopedSelector }
         }
     },
-    resolveSelector: {  // optimal
+    resolveSelector: {  
         enumerable: true, value: async function (selector, scope) {
             scope ??= document.documentElement
             if (!selector) return scope
@@ -415,7 +415,7 @@ const UI = Object.defineProperties({}, {
             } catch (e) { return this.runFragment('resolveselector', selector, scope, isMulti, sliceSignature) }
         }
     },
-    resolveUnit: { // optimal
+    resolveUnit: { 
         enumerable: true, value: async function (unitKey, unitType, asUnitKey, initParams = {}) {
             if (!unitKey || !unitType) return
             const unitKeyTest = Array.isArray(unitKey) ? 'array' : (this.isPlainObject(unitKey) ? 'object' : undefined)
@@ -452,7 +452,7 @@ const UI = Object.defineProperties({}, {
                 .then(u => Object.defineProperty(app[unitTypeCollectionName], key, { configurable: false, enumerable: true, value: u, writable: false })[key])
         }
     },
-    resolveUrl: { // optimal
+    resolveUrl: { 
         enumerable: true, value: function (value, base, raw) {
             if (typeof value !== 'string') return value
             base ??= document.baseURI
@@ -483,7 +483,7 @@ const UI = Object.defineProperties({}, {
             return raw ? valueUrl : valueUrl.href
         }
     },
-    resolveVariable: { // optimal
+    resolveVariable: { 
         enumerable: true, value: function (expression, envelope = {}, flags = {}) {
             if (typeof expression === 'string') expression = expression.trim()
             const { sys, resolveVariable } = this, { regexp, valueAliases } = sys
@@ -540,7 +540,7 @@ const UI = Object.defineProperties({}, {
             return result === undefined ? dft : result
         }
     },
-    useUnit: { // optimal
+    useUnit: { 
         enumerable: true, value: async function (unitKey, unitType, ...args) {
             const unit = await this.resolveUnit(unitKey, unitType), isArray = Array.isArray(unit), isObject = !isArray && this.isPlainObject(unit),
                 promises = (isArray || isObject) && [], result = isObject && {}
@@ -555,23 +555,23 @@ const UI = Object.defineProperties({}, {
             return unit?.use(...args)
         }
     },
-    serialize: { enumerable: true, value: async function (input, contentType = 'application/json') { return this.runFragment('serialize', input, contentType) } }, // optimal
-    toCamelCase: { // optimal
+    serialize: { enumerable: true, value: async function (input, contentType = 'application/json') { return this.runFragment('serialize', input, contentType) } }, 
+    toCamelCase: { 
         enumerable: true, value: function (str) {
             const { dashUnderscoreSpace, nothing } = this.sys.regexp
             return str.replace(dashUnderscoreSpace, (_, c) => (c ? c.toUpperCase() : '')).replace(nothing, (c) => c.toLowerCase())
         }
     },
-    toKebabCase: { enumerable: true, value: function (str) { return str.replace(this.sys.regexp.lowerCaseThenUpper, '$1-$2').replace(this.sys.regexp.upperCaseThenAlpha, '$1-$2').toLowerCase() } }, // optimal
+    toKebabCase: { enumerable: true, value: function (str) { return str.replace(this.sys.regexp.lowerCaseThenUpper, '$1-$2').replace(this.sys.regexp.upperCaseThenAlpha, '$1-$2').toLowerCase() } }, 
 
-    app: { // optimal
+    app: { 
         value: Object.defineProperties({}, {
             cells: { enumerable: true, value: {} }, _components: { value: { nativesFromVirtuals: new WeakMap(), bindings: new WeakMap(), virtualsFromNatives: new WeakMap() } },
             _eventTarget: { value: new EventTarget() }, _facetInstances: { value: new WeakMap() }, _fragments: { value: {} }, _observers: { value: new WeakMap() }, _failedHrefs: { value: new Set() }
         })
     },
-    modules: { enumerable: true, value: {} }, // optimal
-    sys: { // optimal
+    modules: { enumerable: true, value: {} }, 
+    sys: { 
         value: Object.freeze({
             defaultEventTypes: Object.freeze({
                 audio: 'loadeddata', body: 'load', details: 'toggle', dialog: 'close', embed: 'load', form: 'submit', iframe: 'load', img: 'load', input: 'change', link: 'load',
@@ -610,7 +610,7 @@ const UI = Object.defineProperties({}, {
         })
     },
 
-    activateTag: { // optimal
+    activateTag: { 
         value: async function (tag) {
             if (!tag || globalThis.customElements.get(tag) || !this.getCustomTag(tag)) return
             let componentClass = await this.resolveUnit(tag, 'component')
@@ -631,7 +631,7 @@ const UI = Object.defineProperties({}, {
             globalThis.customElements.define(tag, componentClass)
         }
     },
-    attachUnitTypeCollection: { // optimal
+    attachUnitTypeCollection: { 
         value: async function (unitTypeCollection, unitTypeCollectionName, packageUrl, packageKey, pkg) {
             if (typeof unitTypeCollection === 'function') unitTypeCollection = await unitTypeCollection(this, pkg)
             if (!this.env[unitTypeCollectionName]) return
@@ -665,15 +665,15 @@ const UI = Object.defineProperties({}, {
             return Promise.all(promises)
         }
     },
-    buildCatchallSelector: { // optimal
+    buildCatchallSelector: { 
         value: function (selector) {
             const selectorMain = selector.slice(1)
             if (!selectorMain) return selector
             return `${selectorMain},[is="${selectorMain}"],e-${selectorMain},[is="e-${selectorMain}"]`
         }
     },
-    defaultResolver: { value: async function (unitSource, unitType, initParams) { return this.runFragment('defaultresolver', unitSource, unitType, initParams) } }, // optimal
-    installGateway: { // optimal
+    defaultResolver: { value: async function (unitSource, unitType, initParams) { return this.runFragment('defaultresolver', unitSource, unitType, initParams) } }, 
+    installGateway: { 
         value: async function (protocol) {
             if (!protocol) return
             if (!protocol.endsWith(':')) protocol = `${protocol}:`
@@ -694,14 +694,14 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    installModule: { // optimal
+    installModule: { 
         value: async function (moduleName) {
             const { module } = await import(import.meta.resolve(`./modules/${moduleName}.js`))
             for (const p in module) if (typeof module[p].value === 'function') (module[p].value = module[p].value.bind(this))
             return Object.defineProperty(this.modules, moduleName, { enumerable: true, value: Object.freeze(Object.defineProperties({}, module)) })[moduleName]
         }
     },
-    mountElement: { // optimal
+    mountElement: { 
         value: async function (element) {
             const customTag = this.getCustomTag(element)
             if (customTag) {
@@ -766,7 +766,7 @@ const UI = Object.defineProperties({}, {
             return Promise.all(promises)
         }
     },
-    observeUrlAttributes: { // optimal
+    observeUrlAttributes: { 
         value: function (observedScope = document.documentElement, resolveUrl = undefined, urlAttributes = undefined) {
             if (typeof resolveUrl !== 'function') resolveUrl ??= this.resolveUrl
             urlAttributes ??= this.sys.urlAttributes
@@ -781,14 +781,14 @@ const UI = Object.defineProperties({}, {
             return observer
         }
     },
-    processQueue: { // optimal
+    processQueue: { 
         value: async function () {
             for (const job of this.Job.queue.values()) job.use()
             await new Promise(resolve => requestIdleCallback ? requestIdleCallback(resolve) : setTimeout(resolve, 100))
             this.processQueue()
         }
     },
-    resolveUrlAttributes: { // optimal
+    resolveUrlAttributes: { 
         value: function (targets, urlAttributes, resolveUrl) {
             urlAttributes ??= this.sys.urlAttributes
             if (typeof resolveUrl !== 'function') resolveUrl ??= this.resolveUrl
@@ -809,19 +809,19 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    runFragment: { // optimal
+    runFragment: { 
         value: async function (fragmentKey, ...args) {
             const fragment = (this.app._fragments[fragmentKey] ??= (await import(import.meta.resolve(`./fragments/${fragmentKey}.js`)))?.default)
             return typeof fragment === 'function' ? fragment.call(this, ...args) : fragment
         }
     },
-    resolveShapeHandleImplicitValue: { // optimal
+    resolveShapeHandleImplicitValue: { 
         value: function (key) {
             const { endFlags } = this.sys.resolveShape, endFlag = key.slice(key.length - 1)
             return (endFlag in endFlags) ? endFlags[endFlag] : [key, key]
         }
     },
-    resolveShapeSplitIgnoringNesting: { // optimal
+    resolveShapeSplitIgnoringNesting: { 
         value: function (input, delimiter, nesters, byFirst) {
             const result = byFirst ? undefined : [], openingNesters = ['[', '{'], closingNesters = [']', '}']
             let current = '', depth = 0, inQuote = null
@@ -843,7 +843,7 @@ const UI = Object.defineProperties({}, {
             return byFirst ? [current.trim()] : result
         }
     },
-    resolveShapeParseCompound: { // optimal
+    resolveShapeParseCompound: { 
         value: function (input, flag) {
             const isQs = flag === '?', isArray = flag === '[', delimiter = isQs ? '&' : ',', subDelimiter = isQs ? '=' : ':', nesters = ['"', "'", ...(isQs ? [] : ['[', ']', '{', '}'])],
                 result = isArray ? [] : {}, entries = this.resolveShapeSplitIgnoringNesting(input.slice(1, -1), delimiter, nesters)
@@ -858,14 +858,14 @@ const UI = Object.defineProperties({}, {
             return result
         }
     },
-    resolveShape: { // optimal
+    resolveShape: { 
         value: function (input) {
             if (typeof input !== 'string') return input
             if (this.sys.resolveShape.startFlags.has(input[0])) return this.resolveShapeParseCompound(input, input[0])
             return input
         }
     },
-    sliceAndStep: { // optimal
+    sliceAndStep: { 
         value: function (sig, list) {
             if (!Array.isArray(list)) return list
             if (!sig.includes(':')) return [list[parseInt(sig) || 0]]
@@ -877,9 +877,9 @@ const UI = Object.defineProperties({}, {
             return newList
         }
     },
-    unmountElement: { value: async function (element) { return this.runFragment('unmountelement', element) } }, // optimal
+    unmountElement: { value: async function (element) { return this.runFragment('unmountelement', element) } }, 
 
-    AI: { // optimal
+    AI: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -955,7 +955,7 @@ const UI = Object.defineProperties({}, {
             async #initializeMedia() { return this.runFragment('channel').initializeMedia.call(this) }
         }
     },
-    Collection: { // optimal
+    Collection: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -1207,7 +1207,10 @@ const UI = Object.defineProperties({}, {
     Facet: {
         enumerable: true, value: class {
             static E37 = {}
-            static normalize(rawUnit, initParams) { }
+            static normalize(rawUnit, initParams) { 
+                initParams = (initParams && typeof initParams === 'object') ? initParams : {}
+                return (rawUnit && typeof rawUnit === 'object') ? rawUnit : { ...initParams, params: rawUnit }
+            }
             static saveToLabel(stepIndex, label, value, labelMode, labels, fields, cells) {
                 labels[`${stepIndex}`] = value
                 if (label && (label != stepIndex)) {
@@ -1226,18 +1229,20 @@ const UI = Object.defineProperties({}, {
             eventTarget
             fields = {}
             inited
+            key
             labels = {}
             running
             statements = []
-            constructor({ params = {} }) {
+            constructor({ params, anchor, key }) {
                 const { E37 } = this.constructor, { UI } = E37
                 if (typeof params === 'string') params = { directives: params }
-                const { conditions, directives, statements, fields, running, root, anchor } = params
+                const { conditions, directives, statements, fields, running, root } = params
                 if (!(directives || statements)) return
                 let promise = (statements && fields && Array.isArray(statements) && this.constructor.E37.UI.isPlainObject(fields))
                     ? this.constructor.setupStatements(statements, fields) : ((typeof directives === 'string') ? this.parseDirectives(directives) : undefined)
                 if (!promise) return
                 this.anchor = (anchor instanceof HTMLElement) ? anchor : undefined
+                this.key = key
                 this.root = (root instanceof ShadowRoot) ? root : document.documentElement
                 this.#controller = new AbortController()
                 this.eventTarget = new EventTarget()
@@ -1267,7 +1272,7 @@ const UI = Object.defineProperties({}, {
                         stepIndex++
                         const position = `${statementIndex}-${stepIndex}`, { label, labelMode, defaultExpression, stepEnvelope } = step, { interpreter: interpreterKey, variables } = stepEnvelope,
                             descriptor = { ...(stepEnvelope.descriptor ?? {}) }, { signal } = descriptor,
-                            envelope = await UI.createEnvelope({ ...stepEnvelope, descriptor, fields: Object.freeze(this.valueOf()), labels, variables, anchor: this.anchor })
+                            envelope = await UI.createEnvelope({ ...stepEnvelope, descriptor, fields: Object.freeze(this.valueOf()), labels, variables, anchor: this.anchor, key: this.key })
                         let interpreter, matcher
                         for (matcher of interpreterKeys) if (matcher.toString() === interpreterKey) break
                         if (matcher) interpreter = interpreters.get(matcher)
@@ -1280,7 +1285,7 @@ const UI = Object.defineProperties({}, {
                         const previousStepIndex = stepIndex ? stepIndex - 1 : undefined
                         eventTarget.addEventListener(stepIndex ? `done-${statementIndex}-${previousStepIndex}` : 'init', async () => {
                             if (!this.running) return
-                            const handlerEnvelope = await UI.createEnvelope({ ...envelope, fields: Object.freeze(this.valueOf()), labels: Object.freeze({ ...labels }), anchor: this.anchor }),
+                            const handlerEnvelope = await UI.createEnvelope({ ...envelope, fields: Object.freeze(this.valueOf()), labels: Object.freeze({ ...labels }), anchor: this.anchor, key: this.key }),
                                 value = previousStepIndex !== undefined ? labels[`${previousStepIndex}`] : undefined, detail = await handler.call(E37, this, position, handlerEnvelope, value)
                                     ?? (defaultExpression ? UI.resolveVariable(defaultExpression, { ...handlerEnvelope, value }) : undefined)
                             if (detail !== undefined) eventTarget.dispatchEvent(new CustomEvent(`done-${position}`, { detail }))
@@ -1333,7 +1338,7 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    Job: { // optimal
+    Job: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -1382,7 +1387,7 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    Language: { // optimal
+    Language: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -1434,7 +1439,7 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    Model: { // optimal
+    Model: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -1448,7 +1453,7 @@ const UI = Object.defineProperties({}, {
             async use(input) { return (await this.constructor.E37.UI.runFragment('model')).use.call(this, input) }
         }
     },
-    Renderer: { // optimal
+    Renderer: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -1538,7 +1543,7 @@ const UI = Object.defineProperties({}, {
             async use() { return (await this.constructor.E37.UI.runFragment('renderer')).use.call(this) }
         }
     },
-    Service: { // optimal
+    Service: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) { }
@@ -1555,7 +1560,7 @@ const UI = Object.defineProperties({}, {
             async use(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('service')).use.call(this, input, envelope, options.action) }
         }
     },
-    Snippet: { // optimal
+    Snippet: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) {
@@ -1578,7 +1583,7 @@ const UI = Object.defineProperties({}, {
             }
         }
     },
-    State: { // optimal
+    State: { 
         value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) {
@@ -1608,7 +1613,7 @@ const UI = Object.defineProperties({}, {
             toJSON() { return this.valueOf() }
         }
     },
-    Transformer: { // optimal
+    Transformer: { 
         enumerable: true, value: class {
             static E37 = {}
             static embeddableClasses = new Set('Service', 'Collection', 'AI', 'Transformer', 'Language')
@@ -1667,7 +1672,7 @@ const UI = Object.defineProperties({}, {
             async use(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('transformer')).use.call(this, input, envelope, options.step, options.flag) }
         }
     },
-    Type: { // optimal
+    Type: { 
         enumerable: true, value: class {
             static E37 = {}
             static normalize(rawUnit, initParams) {
@@ -1720,7 +1725,7 @@ const UI = Object.defineProperties({}, {
             async use(input, envelope, facet, position, options = {}) { return this.engine(input, options.verbose) }
         }
     },
-    Validator: { // optimal
+    Validator: { 
         enumerable: true, value: class {
             static E37 = {}
             static async use(input, envelope, facet, position, options = {}) { return (await this.E37.UI.runFragment('validator')).use.call(this, input, envelope, facet, position, options) }
@@ -1763,7 +1768,7 @@ const UI = Object.defineProperties({}, {
     }
 })
 Object.defineProperties(UI, {
-    Cell: { // optimal
+    Cell: { 
         enumerable: true, value: class extends UI.State {
             constructor({ name, initialValue }) {
                 const { cells } = UI.app
@@ -1773,7 +1778,7 @@ Object.defineProperties(UI, {
             }
         }
     },
-    Field: { // optimal
+    Field: { 
         enumerable: true, value: class extends UI.State {
             constructor({ name, initialValue, facet }) {
                 let fields = (facet instanceof UI.Facet) ? facet.fields : ((facet instanceof HTMLElement) ? UI.app._facetInstances.get(facet).fields : undefined)
