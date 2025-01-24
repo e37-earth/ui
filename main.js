@@ -4,7 +4,7 @@ const UI = Object.defineProperties({}, {
 
     env: { // optimal
         enumerable: true, value: {
-            ais: {}, services: {}, components: {}, content: {}, context: {}, facets: {}, gateways: {}, hooks: {},
+            ais: {}, collections: {}, components: {}, context: {}, facets: {}, gateways: {}, hooks: {},
             interpreters: new Map([
                 [/^[#?/:]$/, {
                     name: 'router',
@@ -34,8 +34,8 @@ const UI = Object.defineProperties({}, {
                     parser: async function (expression) { return { shape: this.resolveShape(expression) } }
                 }],
                 [/^#\`[^`]+(\|[^`]+)?\`$/, {
-                    name: 'content',
-                    handler: async function (facet, position, envelope, value) { return await this.runFragment('env/interpreters/content', facet, position, envelope, value) },
+                    name: 'collection',
+                    handler: async function (facet, position, envelope, value) { return await this.runFragment('env/interpreters/collection', facet, position, envelope, value) },
                     binder: async function (facet, position, envelope) {
                         const { descriptor, variables } = envelope, { collection: collectionSignature } = descriptor
                         if (!variables?.collection) new this.Job(async function () { await this.resolveUnit(collectionSignature, 'collection') }, `collection:${collectionSignature}`)
@@ -223,7 +223,7 @@ const UI = Object.defineProperties({}, {
             },
             models: {},
             namespaces: { e: new URL(`./components`, import.meta.url) },
-            patterns: {}, renderers: {}, resolvers: {}, snippets: {},
+            patterns: {}, renderers: {}, resolvers: {}, services: {}, snippets: {},
             transformers: {
                 '$': (E37) => {
                     const { UI } = E37
@@ -301,7 +301,7 @@ const UI = Object.defineProperties({}, {
     },
     Mount: { // optimal
         enumerable: true, value: async function () {
-            const { env, app, sys, runUnit } = this, { interpreters } = env, { _eventTarget } = app
+            const { env, app, sys, useUnit } = this, { interpreters } = env, { _eventTarget } = app
             for (const [, interpreter] of interpreters) for (const p of ['handler', 'binder']) if (interpreter[p]) interpreter[p] = interpreter[p].bind(this)
             const interpretersProxyError = () => { throw new Error('Interpreters are read-only at runtime.') }
             env.interpreters = Object.freeze(new Proxy(interpreters, {
@@ -312,11 +312,11 @@ const UI = Object.defineProperties({}, {
             Object.freeze(app)
             for (const eventName of ['beforeinstallprompt', 'beforeunload', 'appinstalled', 'offline', 'online', 'visibilitychange', 'pagehide', 'pageshow']) window.addEventListener(eventName, event => {
                 _eventTarget.dispatchEvent(new CustomEvent(eventName, { detail: this }))
-                runUnit.call(this, eventName, 'hook')
+                useUnit.call(this, eventName, 'hook')
             })
             this.mountElement(document.documentElement).then(async () => {
                 _eventTarget.dispatchEvent(new CustomEvent('load', { detail: this }))
-                await runUnit.call(this, 'load', 'hook')
+                await useUnit.call(this, 'load', 'hook')
                 new Promise(resolve => requestIdleCallback ? requestIdleCallback(resolve) : setTimeout(resolve, 100)).then(() => this.processQueue())
             })
         }
@@ -448,9 +448,7 @@ const UI = Object.defineProperties({}, {
             unitResolver ??= Promise.resolve(this.resolveUnit(unitType, 'resolver') ?? this.defaultResolver)
             unitPromise ??= unitResolver.then(ur => ur.call(this, unitKey, unitType, asUnitKey))
             return app[unitTypeCollectionName][useUnitKey] = unitPromise
-                .then(u => {
-                    return Object.defineProperty(app[unitTypeCollectionName], useUnitKey, { configurable: false, enumerable: true, value: u, writable: false })[useUnitKey]
-                })
+                .then(u => Object.defineProperty(app[unitTypeCollectionName], useUnitKey, { configurable: false, enumerable: true, value: u, writable: false })[useUnitKey])
         }
     },
     resolveUrl: { // optimal
@@ -541,19 +539,19 @@ const UI = Object.defineProperties({}, {
             return result === undefined ? dft : result
         }
     },
-    runUnit: { // optimal
+    useUnit: { // optimal
         enumerable: true, value: async function (unitKey, unitType, ...args) {
             const unit = await this.resolveUnit(unitKey, unitType), isArray = Array.isArray(unit), isObject = !isArray && this.isPlainObject(unit),
                 promises = (isArray || isObject) && [], result = isObject && {}
             if (!unit) return
             if (isArray) {
-                for (const u of unit) promises.push(typeof u === 'function' ? u(...args) : (u?.run(...args) ?? u))
+                for (const u of unit) promises.push(typeof u === 'function' ? u(...args) : (u?.use(...args) ?? u))
                 return Promise.all(promises)
             } else if (isObject) {
-                for (const k in unit) promises.push(Promise.resolve(typeof unit[k] === 'function' ? unit[k](...args) : (unit[k]?.run(...args) ?? unit[k])).then(resolved => result[k] = resolved))
+                for (const k in unit) promises.push(Promise.resolve(typeof unit[k] === 'function' ? unit[k](...args) : (unit[k]?.use(...args) ?? unit[k])).then(resolved => result[k] = resolved))
                 return Promise.all(promises).then(() => result)
             }
-            return unit?.run(...args)
+            return unit?.use(...args)
         }
     },
     serialize: { enumerable: true, value: async function (input, contentType = 'application/json') { return this.runFragment('serialize', input, contentType) } }, // optimal
@@ -596,14 +594,14 @@ const UI = Object.defineProperties({}, {
             segmenter: /\s+>>\s+/g,
             splitter: /\n(?!\s+>>)/gm,
             unitTypeCollectionNameToUnitTypeMap: Object.freeze({
-                services: 'service', components: 'component', content: 'content', context: 'context', facets: 'facet', gateways: 'gateway', hooks: 'hook',
+                services: 'service', components: 'component', collection: 'collection', context: 'context', facets: 'facet', gateways: 'gateway', hooks: 'hook',
                 interpreters: 'interpreter', languages: 'language', libraries: 'library', ais: 'ai', namespaces: 'namespace', patterns: 'pattern', resolvers: 'resolver',
                 snippets: 'snippet', transformers: 'transformer', types: 'type'
             }),
             unitTypeMap: Object.freeze({
                 service: ['services', 'Service'], component: ['components', 'Component'], collection: ['collection', 'Collection'], context: ['context', Object], facet: ['facets', 'Facet'], gateway: ['gateways', 'Gateway'],
                 hook: ['hooks', Function], interpreter: ['interpreters', Object], language: ['languages', 'Language'], library: ['libraries', Object], ai: ['ais', 'AI'],
-                namespace: ['namespaces', URL], pattern: ['patterns', RegExp], resolver: ['resolvers', Function], snippet: ['snippets', HTMLElement], transformer: ['transformers', 'Transformer'],
+                namespace: ['namespaces', URL], pattern: ['patterns', RegExp], resolver: ['resolvers', Function], snippet: ['snippets', 'Snippet'], transformer: ['transformers', 'Transformer'],
                 type: ['types', 'Type']
             }),
             urlAttributes: Object.freeze(['href', 'src']),
@@ -773,7 +771,7 @@ const UI = Object.defineProperties({}, {
     },
     processQueue: { // optimal
         value: async function () {
-            for (const job of this.Job.queue.values()) job.run()
+            for (const job of this.Job.queue.values()) job.use()
             await new Promise(resolve => requestIdleCallback ? requestIdleCallback(resolve) : setTimeout(resolve, 100))
             this.processQueue()
         }
@@ -880,29 +878,29 @@ const UI = Object.defineProperties({}, {
                     switch (typeof model) {
                         case 'function': this.modelWrapper = model.bind(this); break
                         case 'string':
-                            this.modelWrapper = async input => (await (this.model ??= await UI.resolveUnit(model, 'model')).run(input))
+                            this.modelWrapper = async input => (await (this.model ??= await UI.resolveUnit(model, 'model')).use(input))
                             new UI.Job(async function () { await UI.resolveUnit(model, 'model') }, `model:${model}`)
                             break
                         case 'object':
-                            if (model instanceof UI.Model) this.modelWrapper = async input => (await (this.model ??= model).run(input))
-                            else if (UI.isPlainObject(model)) this.modelWrapper = async input => (await (this.model ??= new UI.Model(model)).run(input))
+                            if (model instanceof UI.Model) this.modelWrapper = async input => (await (this.model ??= model).use(input))
+                            else if (UI.isPlainObject(model)) this.modelWrapper = async input => (await (this.model ??= new UI.Model(model)).use(input))
                     }
                 }
                 if (service) {
                     switch (typeof service) {
                         case 'function': this.serviceWrapper = service.bind(this); break
                         case 'string':
-                            this.serviceWrapper = async input => (await (this.service ??= await UI.resolveUnit(service, 'service')).run(input))
+                            this.serviceWrapper = async input => (await (this.service ??= await UI.resolveUnit(service, 'service')).use(input))
                             new UI.Job(async function () { await UI.resolveUnit(service, 'service') }, `service:${service}`)
                             break
                         case 'object':
-                            if (service instanceof UI.Service) this.serviceWrapper = async input => (await (this.service ??= service).run(input))
-                            else if (UI.isPlainObject(service)) this.serviceWrapper = async input => (await (this.service ??= new UI.Service(service)).run(input))
+                            if (service instanceof UI.Service) this.serviceWrapper = async input => (await (this.service ??= service).use(input))
+                            else if (UI.isPlainObject(service)) this.serviceWrapper = async input => (await (this.service ??= new UI.Service(service)).use(input))
                     }
                 }
                 this.engine = async input => ((this.model?.loaded ? this.modelWrapper : (this.serviceWrapper ?? this.modelWrapper))(input))
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('ai')).run.call(this, input, envelope, options.promptTemplateKey) }
+            async use(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('ai')).use.call(this, input, envelope, options.promptTemplateKey) }
         }
     },
     Channel: {
@@ -952,14 +950,14 @@ const UI = Object.defineProperties({}, {
                     case 'function': this.serviceWrapper = service.bind(this); break
                     case 'string':
                         const [serviceName, serviceAction] = service.split(UI.sys.regexp.pipeSplitterAndTrim)
-                        this.serviceWrapper = async (slug, envelope) => (await (this.service ??= await UI.resolveUnit(serviceName, 'service')).run(slug, serviceAction, envelope))
+                        this.serviceWrapper = async (slug, envelope) => (await (this.service ??= await UI.resolveUnit(serviceName, 'service')).use(slug, serviceAction, envelope))
                         new UI.Job(async function () { await UI.resolveUnit(serviceName, 'service') }, `service:${serviceName}`)
                         break
                     default:
                         if (UI.isPlainObject(service)) {
                             service.contentType ??= 'text/markdown'
-                            service.base ??= './content'
-                            this.serviceWrapper = async (slug, envelope) => (await (this.service ??= new UI.Service(service)).run(undefined, slug, envelope))
+                            service.base ??= './collections'
+                            this.serviceWrapper = async (slug, envelope) => (await (this.service ??= new UI.Service(service)).use(undefined, slug, envelope))
                         }
                 }
                 if (!this.serviceWrapper) return
@@ -968,17 +966,17 @@ const UI = Object.defineProperties({}, {
                         case 'function': this.aiWrapper = ai.bind(this); break
                         case 'string':
                             const [aiName, aiPrompt] = ai.split(UI.sys.regexp.pipeSplitterAndTrim)
-                            this.aiWrapper = async (prompt) => (await (this.ai ??= await UI.resolveUnit(aiName, 'ai')).run(prompt, aiPrompt, envelope))
+                            this.aiWrapper = async (prompt) => (await (this.ai ??= await UI.resolveUnit(aiName, 'ai')).use(prompt, aiPrompt, envelope))
                             new UI.Job(async function () { await UI.resolveUnit(aiName, 'ai') }, `ai:${aiName}`)
                             break
                         default:
-                            if (UI.isPlainObject(ai)) this.aiWrapper = async (prompt) => (await (this.service ??= new UI.AI(engine)).run(prompt, undefined, envelope))
+                            if (UI.isPlainObject(ai)) this.aiWrapper = async (prompt) => (await (this.service ??= new UI.AI(engine)).use(prompt, undefined, envelope))
                     }
                     if (this.aiWrapper) this.engine = async (slug, envelope) => { return this.aiWrapper(UI.resolveVariable(await this.serviceWrapper(slug, envelope), envelope, { merge: true })) }
                 }
                 this.engine ??= this.serviceWrapper
             }
-            async run(slug, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('collection')).run.call(this, slug, envelope, options.langCode) }
+            async use(slug, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('collection')).use.call(this, slug, envelope, options.langCode) }
         }
     },
     Component: {
@@ -1126,15 +1124,15 @@ const UI = Object.defineProperties({}, {
                 if (datastore) return await datastore.list()
             }
 
-            async run(input, envelope, facet, position, options = {}) {
+            async use(input, envelope, facet, position, options = {}) {
                 const { E37 } = this.constructor, { UI } = E37
                 let { method } = options, { transformer, inputType, outputType } = method
                 inputType = await UI.resolveUnit(inputType, 'type')
-                if (inputType && !(await inputType.run(input, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
+                if (inputType && !(await inputType.use(input, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
                 transformer = await UI.resolveUnit(transformer, 'transformer')
-                const transaction = transformer ? await transformer.run(input, envelope, facet, position) : input
+                const transaction = transformer ? await transformer.use(input, envelope, facet, position) : input
                 outputType = await UI.resolveUnit(outputType, 'type')
-                if (outputType && !(await outputType.run(transaction, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
+                if (outputType && !(await outputType.use(transaction, envelope, facet, position))) return this.eventTarget.dispatchEvent(new CustomEvent('error'))
                 const datastore = await UI.resolveUnit(this.datastore, 'datastore')
                 if (datastore) await this.datastore.add(transaction)
                 const mesh = await UI.resolveUnit(this.mesh, 'mesh')
@@ -1274,7 +1272,7 @@ const UI = Object.defineProperties({}, {
             }
             async parseDirectives(directives) { return (await this.constructor.E37.UI.runFragment('facet')).parseDirectives.call(this, directives) }
             async pause() { return (this.running = false) }
-            async run() { return (this.running = true) }
+            async use() { return (this.running = true) }
             async setupConditions(conditions) { return (await this.constructor.E37.UI.runFragment('facet')).setupConditions.call(this, conditions) }
             async setupStatements(statements, fields) {
                 const { E37 } = this.constructor, { UI } = E37
@@ -1347,7 +1345,7 @@ const UI = Object.defineProperties({}, {
             }
             cancel() { this.constructor.queue.delete(this.id) }
             complete() { return this.constructor.waitComplete(this.id) }
-            async run() {
+            async use() {
                 if (this.running) return
                 this.running = true
                 try {
@@ -1401,7 +1399,7 @@ const UI = Object.defineProperties({}, {
             }
             saveVirtual(virtualTokens, langCode) { this.virtual.lang[langCode] = Object.freeze(virtualTokens) }
             async preload(langCode) { return (await this.constructor.E37.UI.runFragment('language')).preload.call(this, langCode) }
-            async run(token, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('language')).run.call(this, token, options.langCode, envelope) }
+            async use(token, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('language')).use.call(this, token, options.langCode, envelope) }
         }
     },
     Mesh: {
@@ -1422,7 +1420,7 @@ const UI = Object.defineProperties({}, {
                 new this.constructor.E37.UI.Job(async function () { await this.load(library, load, options) }, `model:${this.name}`)
             }
             async load(library, load, options) { return (await this.constructor.E37.UI.runFragment('model')).load.call(this, library, load, options) }
-            async run(input) { return (await this.constructor.E37.UI.runFragment('model')).run.call(this, input) }
+            async use(input) { return (await this.constructor.E37.UI.runFragment('model')).use.call(this, input) }
         }
     },
     Renderer: { // optimal
@@ -1511,7 +1509,7 @@ const UI = Object.defineProperties({}, {
                 this.apply(node)
                 if (node.shadowRoot) this.support(node.shadowRoot)
             }
-            async run() { return (await this.constructor.E37.UI.runFragment('renderer')).run.call(this) }
+            async use() { return (await this.constructor.E37.UI.runFragment('renderer')).use.call(this) }
         }
     },
     Service: { // optimal
@@ -1527,7 +1525,27 @@ const UI = Object.defineProperties({}, {
                 if (this.actions) Object.freeze(this.actions)
                 if (this.options) Object.freeze(this.options)
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('service')).run.call(this, input, envelope, options.action) }
+            async use(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('service')).use.call(this, input, envelope, options.action) }
+        }
+    },
+    Snippet: { // optimal
+        enumerable: true, value: class {
+            static E37 = {}
+            template
+            constructor({ template }) {
+                const { E37 } = this.constructor, { UI } = E37
+                if (!Array.isArray(template)) template = [template]
+                this.template = document.createElement('template')
+                for (const t of template) {
+                    if (typeof t === 'string') this.template.innerHTML += t
+                    else if (t instanceof HTMLTemplateElement) this.template.content.append(t.content.cloneNode(true))
+                    else if (t instanceof HTMLElement) this.template.content.append(t.cloneNode(true))
+                }
+            }
+            async use(input, envelope, facet, position, options = {}) {
+                console.log(input)
+                return
+            }
         }
     },
     State: { // optimal
@@ -1610,7 +1628,7 @@ const UI = Object.defineProperties({}, {
                     }
                 }
             }
-            async run(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('transformer')).run.call(this, input, envelope, options.step, options.flag) }
+            async use(input, envelope, facet, position, options = {}) { return (await this.constructor.E37.UI.runFragment('transformer')).use.call(this, input, envelope, options.step, options.flag) }
         }
     },
     Type: { // optimal
@@ -1624,7 +1642,7 @@ const UI = Object.defineProperties({}, {
                     case 'object':
                         if (typeDefinition instanceof UI.Validator) {
                             this.engine = async (input, verbose, envelope) => {
-                                const [valid, validation = {}] = await typeDefinition.constructor.run.call(typeDefinition, input, verbose, envelope)
+                                const [valid, validation = {}] = await typeDefinition.constructor.use.call(typeDefinition, input, verbose, envelope)
                                 return verbose ? validation : valid
                             }
                         } else {
@@ -1660,13 +1678,13 @@ const UI = Object.defineProperties({}, {
                         }
                 }
             }
-            async run(input, envelope, facet, position, options = {}) { return this.engine(input, options.verbose) }
+            async use(input, envelope, facet, position, options = {}) { return this.engine(input, options.verbose) }
         }
     },
     Validator: { // optimal
         enumerable: true, value: class {
             static E37 = {}
-            static async run(input, envelope, facet, position, options = {}) { return (await this.E37.UI.runFragment('validator')).run.call(this, input, envelope, facet, position, options) }
+            static async use(input, envelope, facet, position, options = {}) { return (await this.E37.UI.runFragment('validator')).use.call(this, input, envelope, facet, position, options) }
         }
     },
     Worker: {
