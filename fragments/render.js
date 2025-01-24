@@ -3,7 +3,8 @@ const voidElementTags = Object.freeze({
     param: 'value', source: 'src', track: 'src', wbr: null
 })
 
-export default async function (element, data) {
+export default async function (element, data, key) {
+    console.log({element, data, key})
     const isElement = (element instanceof HTMLElement), isFragment = (element instanceof DocumentFragment), tag = isElement ? element.tagName.toLowerCase() : undefined
     if (!(isElement || isFragment)) return
     element = this.app._components.virtualsFromNatives.get(element) ?? element
@@ -32,6 +33,12 @@ export default async function (element, data) {
     }
     const { processElementMapper } = await this.runFragment('sys/mappers'), promises = []
     if (Array.isArray(data)) for (const item of data) promises.push(this.render(element, item))
-    else for (const p in data) promises.push(processElementMapper.call(this, element, 'set', p, data[p], tag in voidElementTags))
+    else if (this.isPlainObject(data)) for (const p in data) {
+        UP TO HERE!!!
+        // need to drill into to get element[p] - but properly qualified for rich property types
+        promises.push(this.render(element, data[p], p))
+    }
+    else promises.push(processElementMapper.call(this, element, 'set', key, data, tag in voidElementTags))
+    // else for (const p in data) promises.push(processElementMapper.call(this, element, 'set', p, data[p], tag in voidElementTags))
     return await Promise.all(promises)
 }

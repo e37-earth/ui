@@ -46,8 +46,6 @@ const mappers = {
     '..': '$textContent',
     $text: function (el, mode, v, p, options = {}) { return (mode === 'set') ? (el.innerText = v) : el.innerText },
     '...': '$text',
-
-
     $html: function (el, mode, v, p, options = {}) {
         if (mode !== 'set') return el.innerHTML
         let childElement
@@ -67,8 +65,6 @@ const mappers = {
         return Promise.all(promises)
     },
     '<>': '$html',
-
-
     $tag: function (el, mode, v, p, options = {}) {
         if (!(el && (el instanceof HTMLElement))) return
         return (mode === 'set') ? (v == null ? el.removeAttribute('is') : (el.setAttribute('is', v.toLowerCase()))) : ((value.getAttribute('is') || value.tagName).toLowerCase())
@@ -92,7 +88,7 @@ const mappers = {
             if (mode === 'get') return this.flatten(el[traverser])
         }
         const inserters = new Set(['after', 'before', 'prepend', 'append', 'replaceWith', 'replaceChildren']),
-            insertersMap = { nextElementSibling: 'after', previousElementSibling: 'before', firstElementChild: 'prepend', lastElementChild: 'append', children: 'replaceChildren' }
+            insertersMap = { nextElementSibling: 'after', previousElementSibling: 'before', firstElementChild: 'prepend', lastElementChild: 'append', children: 'replaceChildren', replace: 'replaceWith' }
         let inserter = insertersMap[p] ?? p
         if (isVoidElement) inserter = ({ prepend: 'before', append: 'after', replaceChildren: 'replaceWith' })[inserter] ?? inserter
         if (!inserters.has(inserter)) return
@@ -279,10 +275,12 @@ const mappers = {
 
 export default {
     processElementMapper: async function (element, mode, prop, value, isVoidElement) {
-        if (!prop) {
-            if (value instanceof HTMLElement) prop = isVoidElement ? '::replaceWith' : '::replaceChildren'
+        prop = prop.trim()
+        if (value instanceof HTMLElement) {
+            if (!prop.includes('::')) prop = isVoidElement ? `${prop}::replaceWith` : `${prop}::replaceChildren`
         }
         element = this.app._components.nativesFromVirtuals.get(element) ?? element
+        console.log({element, mode, prop, value, isVoidElement})
         if (prop in mappers) return (mode === 'has') || (typeof mappers[prop] === 'string' ? mappers[mappers[prop]] : mappers[prop]).call(this, element, mode, value, prop, { isVoidElement })
         const propFlag = prop[0], propMain = prop.slice(1)
         if (propFlag in mappers) return (typeof mappers[propFlag] === 'string' ? mappers[mappers[propFlag]] : mappers[propFlag]).call(this, element, mode, value, propMain, { isVoidElement })

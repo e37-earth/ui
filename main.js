@@ -1577,9 +1577,9 @@ const UI = Object.defineProperties({}, {
                     else if (t instanceof HTMLElement) this.template.content.append(t.cloneNode(true))
                 }
             }
-            async use(selector, envelope, facet, position, options = {}) {
-                const { E37 } = this.constructor, { UI } = E37, { anchor } = envelope
-                return await UI.render(anchor ?? document.documentElement, { [selector]: this.template })
+            async use(input, envelope, facet, position, options = {}) {
+                const { E37 } = this.constructor, { UI } = E37, { anchor } = envelope, [selector, positionQualifier] = input.trim().split('::')                
+                return await UI.render(anchor ?? document.documentElement, {[selector]: {[`::${(positionQualifier || 'replace')}`]: this.template}})
             }
         }
     },
