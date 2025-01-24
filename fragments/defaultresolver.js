@@ -4,7 +4,7 @@ const autoResolverSuffixes = Object.freeze({
     pattern: ['txt', 'js'], renderer: ['js'], resolver: ['js'], service: ['js', 'json'], snippet: ['html', 'js'], transformer: ['js'], type: ['js', 'schema.json', 'json', 'x', 'xdr']
 })
 
-export default async function (unitSource, unitType) {
+export default async function (unitSource, unitType, initParams = {}) {
     if (!(unitSource && unitType)) return
     const unitTypeCollectionName = this.sys.unitTypeMap[unitType]?.[0]
     if (!unitTypeCollectionName) return
@@ -69,5 +69,5 @@ export default async function (unitSource, unitType) {
     if (typeof unit === 'function') unit = await unit(this)
     if (unit instanceof Promise) unit = await unit
     if (unit instanceof unitClass) return unit
-    return new unitClass(unit)
+    return new unitClass(unitClass.normalize(unit, initParams))
 }

@@ -80,16 +80,21 @@ const mappers = {
     },
     '^': '$parent',
     $position: function (el, mode, v, p, options = {}) {
+        const { isVoidElement } = options
         el = this.app._components.nativesFromVirtuals.get(el) ?? el
         if (mode !== 'set') {
             const traversers = new Set(['nextElementSibling', 'previousElementSibling', 'parentElement', 'firstElementChild', 'lastElementChild', 'children']),
-                traversersMap = { after: 'nextElementSibling', before: 'previousElementSibling', parent: 'parentElement', prepend: 'firstElementChild', append: 'lastElementChild' }, traverser = traversersMap[p] ?? p
+                traversersMap = { after: 'nextElementSibling', before: 'previousElementSibling', parent: 'parentElement', prepend: 'firstElementChild', append: 'lastElementChild' }
+            let traverser = traversersMap[p] ?? p
+            if (isVoidElement) traverser = ({ firstElementChild: 'previousElementSibling', lastElementChild: 'nextElementSibling', children: '' })[traverser] ?? traverser
             if (!traversers.has(traverser)) return
             if (mode === 'has') return !!el[traverser]
             if (mode === 'get') return this.flatten(el[traverser])
         }
         const inserters = new Set(['after', 'before', 'prepend', 'append', 'replaceWith', 'replaceChildren']),
-            insertersMap = { nextElementSibling: 'after', previousElementSibling: 'before', firstElementChild: 'prepend', lastElementChild: 'append', children: 'replaceChildren' }, inserter = insertersMap[p] ?? p
+            insertersMap = { nextElementSibling: 'after', previousElementSibling: 'before', firstElementChild: 'prepend', lastElementChild: 'append', children: 'replaceChildren' }
+        let inserter = insertersMap[p] ?? p
+        if (isVoidElement) inserter = ({ prepend: 'before', append: 'after', replaceChildren: 'replaceWith' })[inserter] ?? inserter
         if (!inserters.has(inserter)) return
         const fragment = new DocumentFragment(), promises = []
         if (Array.isArray(v)) {
@@ -100,10 +105,10 @@ const mappers = {
                 promises.push(Promise.all(itemPromises).then(() => fragment.append(itemNode)))
             }
         } else if (this.isPlainObject(v)) promises.push(this.render(fragment, v))
+        else if (v instanceof HTMLTemplateElement) fragment.append(v.content.cloneNode(true))
+        else if (v instanceof HTMLElement) fragment.append(v.cloneNode(true))
         else fragment.innerHTML = `${v}`
-        return Promise.all(promises).then(() => {
-            el[inserter](fragment)
-        })
+        return Promise.all(promises).then(() => el[inserter](fragment))
     },
     $event: function (el, mode, v, p, options = {}) { return (mode === 'set') ? undefined : (p ? this.flatten(options?.detail?.[p]) : this.flatten(options)) },
     '!': '$event',
@@ -273,16 +278,18 @@ const mappers = {
 }
 
 export default {
-    processElementMapper: async function (element, mode, prop, value) {
+    processElementMapper: async function (element, mode, prop, value, isVoidElement) {
+        if (!prop) {
+            if (value instanceof HTMLElement) prop = isVoidElement ? '::replaceWith' : '::replaceChildren'
+        }
         element = this.app._components.nativesFromVirtuals.get(element) ?? element
-        // console.log({ element, mode, prop, value }, mappers[prop])
-        if (prop in mappers) return (mode === 'has') || (typeof mappers[prop] === 'string' ? mappers[mappers[prop]] : mappers[prop]).call(this, element, mode, value)
+        if (prop in mappers) return (mode === 'has') || (typeof mappers[prop] === 'string' ? mappers[mappers[prop]] : mappers[prop]).call(this, element, mode, value, prop, { isVoidElement })
         const propFlag = prop[0], propMain = prop.slice(1)
-        if (propFlag in mappers) return (typeof mappers[propFlag] === 'string' ? mappers[mappers[propFlag]] : mappers[propFlag]).call(this, element, mode, value, propMain)
-        if ((propFlag === '[') && propMain.endsWith(']')) return mappers.$form.call(this, element, mode, value, propMain.slice(0, -1).trim())
-        if ((propFlag === '{') && propMain.endsWith('}')) return mappers.$microdata.call(this, element, mode, value, propMain.slice(0, -1).trim())
-        if (propFlag === ':' && propMain[0] === ':') return mappers.$position.call(this, element, mode, value, propMain.slice(1).trim())
-        if (propFlag === '<' && propMain.endsWith('>')) return mappers.$html.call(this, element, mode, value, propMain.slice(0, -1).trim())
+        if (propFlag in mappers) return (typeof mappers[propFlag] === 'string' ? mappers[mappers[propFlag]] : mappers[propFlag]).call(this, element, mode, value, propMain, { isVoidElement })
+        if ((propFlag === '[') && propMain.endsWith(']')) return mappers.$form.call(this, element, mode, value, propMain.slice(0, -1).trim(), { isVoidElement })
+        if ((propFlag === '{') && propMain.endsWith('}')) return mappers.$microdata.call(this, element, mode, value, propMain.slice(0, -1).trim(), { isVoidElement })
+        if (propFlag === ':' && propMain[0] === ':') return mappers.$position.call(this, element, mode, value, propMain.slice(1).trim(), { isVoidElement })
+        if (propFlag === '<' && propMain.endsWith('>')) return mappers.$html.call(this, element, mode, value, propMain.slice(0, -1).trim(), { isVoidElement })
         return (mode === 'has') ? (prop in element) : ((mode === 'set') ? (element[prop] = value) : this.flatten(element[prop]))
     }
 }

@@ -416,7 +416,7 @@ const UI = Object.defineProperties({}, {
         }
     },
     resolveUnit: { // optimal
-        enumerable: true, value: async function (unitKey, unitType, asUnitKey) {
+        enumerable: true, value: async function (unitKey, unitType, asUnitKey, initParams = {}) {
             if (!unitKey || !unitType) return
             const unitKeyTest = Array.isArray(unitKey) ? 'array' : (this.isPlainObject(unitKey) ? 'object' : undefined)
             if (unitKeyTest) {
@@ -431,24 +431,25 @@ const UI = Object.defineProperties({}, {
             const { sys, app } = this, [unitTypeCollectionName, unitClassName] = sys.unitTypeMap[unitType], unitClass = typeof unitClassName === 'string' ? this[unitClassName] : unitClassName
             if (typeof unitKey !== 'string') return (unitKey instanceof unitClass) ? unitKey : undefined
             if (!(unitKey = unitKey.trim())) return
-            const useUnitKey = asUnitKey ?? unitKey
-            let unit = app[unitTypeCollectionName][useUnitKey]
+            const key = asUnitKey ?? unitKey
+            initParams.key ??= key
+            let unit = app[unitTypeCollectionName][key]
             if (unit) return await unit
-            const envUnit = this.env[unitTypeCollectionName][useUnitKey]
+            const envUnit = this.env[unitTypeCollectionName][key]
             let unitResolver, unitPromise
             if (envUnit) {
                 if ((typeof envUnit === 'function') && !(envUnit instanceof unitClass)) unitPromise = Promise.resolve(envUnit(this))
                 else if (envUnit instanceof Promise) unitPromise = envUnit
                 else if (typeof envUnit === 'string') unitResolver = Promise.resolve(this.resolveUnit(unitType, 'resolver') ?? this.defaultResolver)
                 unitPromise ??= unitResolver ? unitResolver.then(ur => {
-                    return ur.call(this, envUnit, unitType, useUnitKey)
+                    return ur.call(this, envUnit, unitType, initParams)
                 }) : Promise.resolve(envUnit)
             }
             if (!unitPromise && this.sys.localOnlyUnitTypes.has(unitType)) return
             unitResolver ??= Promise.resolve(this.resolveUnit(unitType, 'resolver') ?? this.defaultResolver)
-            unitPromise ??= unitResolver.then(ur => ur.call(this, unitKey, unitType, asUnitKey))
-            return app[unitTypeCollectionName][useUnitKey] = unitPromise
-                .then(u => Object.defineProperty(app[unitTypeCollectionName], useUnitKey, { configurable: false, enumerable: true, value: u, writable: false })[useUnitKey])
+            unitPromise ??= unitResolver.then(ur => ur.call(this, unitKey, unitType, initParams))
+            return app[unitTypeCollectionName][key] = unitPromise
+                .then(u => Object.defineProperty(app[unitTypeCollectionName], key, { configurable: false, enumerable: true, value: u, writable: false })[key])
         }
     },
     resolveUrl: { // optimal
@@ -671,7 +672,7 @@ const UI = Object.defineProperties({}, {
             return `${selectorMain},[is="${selectorMain}"],e-${selectorMain},[is="e-${selectorMain}"]`
         }
     },
-    defaultResolver: { value: async function (unitSource, unitType) { return this.runFragment('defaultresolver', unitSource, unitType) } }, // optimal
+    defaultResolver: { value: async function (unitSource, unitType, initParams) { return this.runFragment('defaultresolver', unitSource, unitType, initParams) } }, // optimal
     installGateway: { // optimal
         value: async function (protocol) {
             if (!protocol) return
@@ -747,7 +748,18 @@ const UI = Object.defineProperties({}, {
             if ((element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-'))) {
                 let [unitType, asUnitKey] = element.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
                 unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
-                if ((unitType in this.sys.unitTypeMap) && element.content) promises.push(this.resolveUnit(element.content.trim(), unitType, asUnitKey))
+                const anchor = element
+                if ((unitType in this.sys.unitTypeMap) && element.content) {
+                    promises.push(
+                        this.resolveUnit(element.content.trim(), unitType, asUnitKey, { anchor }).then(unit => {
+                            if ('use' in element.dataset) {
+                                const labels = { ...element.dataset }
+                                delete labels.use
+                                return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(element.dataset.use, envelope))
+                            }
+                        })
+                    )
+                }
             }
             if (element.shadowRoot?.children) for (const n of element.shadowRoot.children) promises.push(this.mountElement(n))
             for (const n of element.children) promises.push(this.mountElement(n))
@@ -870,6 +882,7 @@ const UI = Object.defineProperties({}, {
     AI: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             constructor({ service, model, promptTemplates = {} }) {
                 if (!service) return
                 const { E37 } = this.constructor, { UI } = E37
@@ -906,6 +919,7 @@ const UI = Object.defineProperties({}, {
     Channel: {
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             type
             name
             config = {}
@@ -944,6 +958,7 @@ const UI = Object.defineProperties({}, {
     Collection: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             constructor({ service = {}, ai = {} }) {
                 const { E37 } = this.constructor, { UI } = E37
                 switch (typeof service) {
@@ -982,6 +997,7 @@ const UI = Object.defineProperties({}, {
     Component: {
         enumerable: true, value: class extends HTMLElement {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             static base = {}
             static events = {}
             static facet
@@ -1027,7 +1043,7 @@ const UI = Object.defineProperties({}, {
                     })).then(layoutHtml => {
                         if (layoutHtml === undefined) return
                         const fields = Object.freeze({ ...this.dataset }), labels = Object.freeze(UI.flatten(this.valueOf()))
-                        UI.createEnvelope({ labels, fields }).then(envelope => {
+                        UI.createEnvelope({ labels, fields, anchor: this }).then(envelope => {
                             this.shadowRoot.innerHTML = UI.resolveVariable(layoutHtml, envelope, { merge: true })
                             let urlAttributesSelector = ''
                             for (const a of this.sys.urlAttributes) urlAttributesSelector += `[${a}]`
@@ -1092,6 +1108,7 @@ const UI = Object.defineProperties({}, {
     Contract: {
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
 
             eventTarget
 
@@ -1146,6 +1163,7 @@ const UI = Object.defineProperties({}, {
     Datastore: {
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             name
             db
             tables = {}
@@ -1189,6 +1207,7 @@ const UI = Object.defineProperties({}, {
     Facet: {
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             static saveToLabel(stepIndex, label, value, labelMode, labels, fields, cells) {
                 labels[`${stepIndex}`] = value
                 if (label && (label != stepIndex)) {
@@ -1210,14 +1229,15 @@ const UI = Object.defineProperties({}, {
             labels = {}
             running
             statements = []
-            constructor(params = {}) {
+            constructor({ params = {} }) {
                 const { E37 } = this.constructor, { UI } = E37
                 if (typeof params === 'string') params = { directives: params }
-                const { conditions, directives, statements, fields, running, root } = params
+                const { conditions, directives, statements, fields, running, root, anchor } = params
                 if (!(directives || statements)) return
                 let promise = (statements && fields && Array.isArray(statements) && this.constructor.E37.UI.isPlainObject(fields))
                     ? this.constructor.setupStatements(statements, fields) : ((typeof directives === 'string') ? this.parseDirectives(directives) : undefined)
                 if (!promise) return
+                this.anchor = (anchor instanceof HTMLElement) ? anchor : undefined
                 this.root = (root instanceof ShadowRoot) ? root : document.documentElement
                 this.#controller = new AbortController()
                 this.eventTarget = new EventTarget()
@@ -1247,7 +1267,7 @@ const UI = Object.defineProperties({}, {
                         stepIndex++
                         const position = `${statementIndex}-${stepIndex}`, { label, labelMode, defaultExpression, stepEnvelope } = step, { interpreter: interpreterKey, variables } = stepEnvelope,
                             descriptor = { ...(stepEnvelope.descriptor ?? {}) }, { signal } = descriptor,
-                            envelope = await UI.createEnvelope({ ...stepEnvelope, descriptor, fields: Object.freeze(this.valueOf()), labels, variables })
+                            envelope = await UI.createEnvelope({ ...stepEnvelope, descriptor, fields: Object.freeze(this.valueOf()), labels, variables, anchor: this.anchor })
                         let interpreter, matcher
                         for (matcher of interpreterKeys) if (matcher.toString() === interpreterKey) break
                         if (matcher) interpreter = interpreters.get(matcher)
@@ -1260,7 +1280,7 @@ const UI = Object.defineProperties({}, {
                         const previousStepIndex = stepIndex ? stepIndex - 1 : undefined
                         eventTarget.addEventListener(stepIndex ? `done-${statementIndex}-${previousStepIndex}` : 'init', async () => {
                             if (!this.running) return
-                            const handlerEnvelope = await UI.createEnvelope({ ...envelope, fields: Object.freeze(this.valueOf()), labels: Object.freeze({ ...labels }) }),
+                            const handlerEnvelope = await UI.createEnvelope({ ...envelope, fields: Object.freeze(this.valueOf()), labels: Object.freeze({ ...labels }), anchor: this.anchor }),
                                 value = previousStepIndex !== undefined ? labels[`${previousStepIndex}`] : undefined, detail = await handler.call(E37, this, position, handlerEnvelope, value)
                                     ?? (defaultExpression ? UI.resolveVariable(defaultExpression, { ...handlerEnvelope, value }) : undefined)
                             if (detail !== undefined) eventTarget.dispatchEvent(new CustomEvent(`done-${position}`, { detail }))
@@ -1301,8 +1321,9 @@ const UI = Object.defineProperties({}, {
     Gateway: {
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             fallbacks = []
-            constructor(fallbacks) {
+            constructor({ fallbacks }) {
                 if (!Array.isArray(fallbacks)) fallbacks = [fallbacks]
                 for (let fallback of fallbacks) {
                     if (typeof fallback === 'string') fallback = { gateway: fallback }
@@ -1315,6 +1336,7 @@ const UI = Object.defineProperties({}, {
     Job: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             running = false
             static cancelJob(id) { return this.constructor.queue.delete(id) }
             static isComplete(id) { return !this.constructor.queue.get(id) }
@@ -1335,7 +1357,7 @@ const UI = Object.defineProperties({}, {
                     res(!queue.has(id))
                 }))
             }
-            constructor(jobFunction, id) {
+            constructor({ jobFunction, id }) {
                 const { E37, queue } = this.constructor, { UI } = E37
                 if (typeof jobFunction !== 'function') return
                 this.id = id ?? UI.generateUuid()
@@ -1363,6 +1385,7 @@ const UI = Object.defineProperties({}, {
     Language: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             static validEngineClasses = new Set(['AI', 'Service'])
             constructor({ defaultTokenValue = '', tokens = {}, virtual = {}, envelope }) {
                 const { E37 } = this.constructor, { UI } = E37
@@ -1405,6 +1428,7 @@ const UI = Object.defineProperties({}, {
     Mesh: {
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             constructor({ }) {
 
             }
@@ -1413,6 +1437,7 @@ const UI = Object.defineProperties({}, {
     Model: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             constructor({ inference, library, load, name, options = {} }) {
                 if (!((library && (typeof library === 'string')) && (typeof load === 'function') && (typeof inference === 'function'))) return
                 this.inference = inference.bind(this)
@@ -1426,6 +1451,7 @@ const UI = Object.defineProperties({}, {
     Renderer: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             static validEngineClasses = new Set(['AI', 'Service', 'Collection', 'Language', 'Transformer'])
             observers = new WeakMap()
             constructor({ engine, matches = {}, mode, scopeSelector, name, namespace, labels = {}, defaultValue = '', envelope }) {
@@ -1515,6 +1541,7 @@ const UI = Object.defineProperties({}, {
     Service: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) { }
             constructor({ base = '.', actions = {}, options = {}, contentType = 'application/json', acceptType, preProcessor, postProcessor, errorProcessor }) {
                 const { E37 } = this.constructor, { UI } = E37
                 Object.assign(this, { E37, base: this.resolveUrl(base), actions, options, contentType, acceptType, preProcessor, postProcessor, errorProcessor })
@@ -1531,6 +1558,9 @@ const UI = Object.defineProperties({}, {
     Snippet: { // optimal
         enumerable: true, value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) {
+                return (rawUnit && typeof rawUnit === 'object') ? rawUnit : { template: rawUnit, anchor: initParams?.anchor ?? initParams }
+            }
             template
             constructor({ template }) {
                 const { E37 } = this.constructor, { UI } = E37
@@ -1542,15 +1572,18 @@ const UI = Object.defineProperties({}, {
                     else if (t instanceof HTMLElement) this.template.content.append(t.cloneNode(true))
                 }
             }
-            async use(input, envelope, facet, position, options = {}) {
-                console.log(input)
-                return
+            async use(selector, envelope, facet, position, options = {}) {
+                const { E37 } = this.constructor, { UI } = E37, { anchor } = envelope
+                return await UI.render(anchor ?? document.documentElement, { [selector]: this.template })
             }
         }
     },
     State: { // optimal
         value: class {
             static E37 = {}
+            static normalize(rawUnit, initParams) {
+                return (rawUnit && typeof rawUnit === 'object') ? rawUnit : { name: rawUnit, initialValue: initParams }
+            }
             name
             type
             value
@@ -1567,7 +1600,7 @@ const UI = Object.defineProperties({}, {
                 if (labelMode !== 'silent') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
                 return this
             }
-            constructor(name, initialValue) {
+            constructor({ name, initialValue }) {
                 this.name = name
                 this.value = initialValue
             }
@@ -1579,9 +1612,12 @@ const UI = Object.defineProperties({}, {
         enumerable: true, value: class {
             static E37 = {}
             static embeddableClasses = new Set('Service', 'Collection', 'AI', 'Transformer', 'Language')
+            static normalize(rawUnit, initParams) {
+                return (rawUnit && typeof rawUnit === 'object') ? rawUnit : { stepChain: rawUnit, isProxy: !!initParams }
+            }
             isProxy
             stepIntermediates
-            constructor(stepChain, isProxy) {
+            constructor({ stepChain, isProxy }) {
                 const { E37 } = this.constructor, { UI } = E37
                 if (!stepChain) return
                 const { E } = this.constructor
@@ -1634,7 +1670,10 @@ const UI = Object.defineProperties({}, {
     Type: { // optimal
         enumerable: true, value: class {
             static E37 = {}
-            constructor(typeDefinition, typeName) {
+            static normalize(rawUnit, initParams) {
+                return (rawUnit && typeof rawUnit === 'object') ? rawUnit : { typeDefinition: rawUnit, typeName: initParams?.typeName ?? `${initParams}` }
+            }
+            constructor({ typeDefinition, typeName }) {
                 const { E37 } = this.constructor, { UI } = E37
                 if (!typeDefinition) return
                 switch (typeof typeDefinition) {
@@ -1726,7 +1765,7 @@ const UI = Object.defineProperties({}, {
 Object.defineProperties(UI, {
     Cell: { // optimal
         enumerable: true, value: class extends UI.State {
-            constructor(name, initialValue) {
+            constructor({ name, initialValue }) {
                 const { cells } = UI.app
                 if (name && cells[name]) return cells[name]
                 super(name, initialValue)
@@ -1736,7 +1775,7 @@ Object.defineProperties(UI, {
     },
     Field: { // optimal
         enumerable: true, value: class extends UI.State {
-            constructor(name, initialValue, facet) {
+            constructor({ name, initialValue, facet }) {
                 let fields = (facet instanceof UI.Facet) ? facet.fields : ((facet instanceof HTMLElement) ? UI.app._facetInstances.get(facet).fields : undefined)
                 if (name && fields[name]) return fields[name]
                 super(name, initialValue)
