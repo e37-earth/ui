@@ -379,8 +379,8 @@ const UI = Object.defineProperties({}, {
                     let scope = element.getRootNode()
                     switch (scopeStatement) {
                         case '*': return (scope === document) ? document.documentElement : scope
-                        case '&': return (root instanceof ShadowRoot) ? scope : document.body
-                        case '@': return (root instanceof ShadowRoot) ? scope : document.head
+                        case '&': return (scope instanceof ShadowRoot) ? scope : document.body
+                        case '@': return (scope instanceof ShadowRoot) ? scope : document.head
                     }
                 default: return element.closest(scopeStatement)
             }
@@ -412,7 +412,9 @@ const UI = Object.defineProperties({}, {
             if (isMulti) [selector, sliceSignature] = [selector.slice(0, lastIndexOfOpenCurlyBracket), selector.slice(lastIndexOfOpenCurlyBracket + 1, -1)]
             try {
                 return isMulti ? this.sliceAndStep(sliceSignature, Array.from(scope.querySelectorAll(selector))) : scope.querySelector(selector)
-            } catch (e) { return this.runFragment('resolveselector', selector, scope, isMulti, sliceSignature) }
+            } catch (e) { 
+                return this.runFragment('resolveselector', selector, scope, isMulti, sliceSignature) 
+            }
         }
     },
     resolveUnit: { 
@@ -1578,8 +1580,14 @@ const UI = Object.defineProperties({}, {
                 }
             }
             async use(input, envelope, facet, position, options = {}) {
-                const { E37 } = this.constructor, { UI } = E37, { anchor } = envelope, [selector, positionQualifier] = input.trim().split('::')                
-                return await UI.render(anchor ?? document.documentElement, {[selector]: {[`::${(positionQualifier || 'replace')}`]: this.template}})
+                const { E37 } = this.constructor, { UI } = E37, { anchor } = envelope
+                let [selector, positionQualifier] = input.trim().split('::')
+                if (selector) {
+                    if (selector && !selector.includes('|')) selector = `*|${selector.trim()}`
+                    return await UI.render(anchor ?? document.documentElement, {[selector.trim()]: {[`::${(positionQualifier || 'replace')}`]: this.template}})
+                } else {
+                    return await UI.render(anchor ?? document.documentElement, {[`::${(positionQualifier || 'replace')}`]: this.template})
+                }
             }
         }
     },

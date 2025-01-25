@@ -280,7 +280,6 @@ export default {
             if (!prop.includes('::')) prop = isVoidElement ? `${prop}::replaceWith` : `${prop}::replaceChildren`
         }
         element = this.app._components.nativesFromVirtuals.get(element) ?? element
-        console.log({element, mode, prop, value, isVoidElement})
         if (prop in mappers) return (mode === 'has') || (typeof mappers[prop] === 'string' ? mappers[mappers[prop]] : mappers[prop]).call(this, element, mode, value, prop, { isVoidElement })
         const propFlag = prop[0], propMain = prop.slice(1)
         if (propFlag in mappers) return (typeof mappers[propFlag] === 'string' ? mappers[mappers[propFlag]] : mappers[propFlag]).call(this, element, mode, value, propMain, { isVoidElement })
@@ -291,30 +290,3 @@ export default {
         return (mode === 'has') ? (prop in element) : ((mode === 'set') ? (element[prop] = value) : this.flatten(element[prop]))
     }
 }
-
-
-// const pFlag = p[0]
-// if (pFlag === '&') {
-//     let child = this.resolveScopedSelector(p, element)
-//     if (!child) continue
-//     if (!Array.isArray(child)) { this.render(child, data[p]); continue }
-//     const useArray = Array.isArray(data[p]) ? [...data[p]] : undefined
-//     for (const c of child) promises.push(this.render(c, useArray ? useArray.shift() : data[p]))
-// }
-// else if (pFlag in mappers) mappers[pFlag](element, p.slice(1).trim(), true, data[p])
-// else if ((pFlag === '[') && p.endsWith(']')) mappers.$form.call(this, element, p.slice(1, -1).trim(), true, data[p])
-// else if ((pFlag === '{') && p.endsWith('}')) mappers.$microdata.call(this, element, p.slice(1, -1).trim(), true, data[p])
-// else if (typeof element[p] === 'function') element[p](data[p])
-// else if (p.endsWith(')') && p.includes('(') && (typeof element[p.slice(0, p.indexOf('(')).trim()] === 'function')) {
-//     let [functionName, argsList] = p.slice(0, -1).split('(')
-//     functionName = functionName.trim()
-//     argsList ||= '$'
-//     if (typeof element[functionName] !== 'function') continue
-//     argsList = argsList.trim().split(this.sys.regexp.commaSplitter)
-//     const args = [], labels = { ...element.dataset }
-//     promises.push(this.createEnvelope({ labels, value: data }).then(envelope => {
-//         for (let a of argsList) args.push(this.resolveVariable(a, envelope))
-//         element[functionName](...args)
-//     }))
-// }
-// else element[p] = data[p]
