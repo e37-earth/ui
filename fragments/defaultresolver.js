@@ -2,6 +2,9 @@ const autoResolverSuffixes = Object.freeze({
     ai: ['js', 'json'], collection: ['js', 'json'], content: ['md', 'html', 'txt', 'js'], context: ['json', 'js'], facet: ['directives', 'js'],
     gateway: ['js'], hook: ['js'], interpreter: ['js'], library: ['js'], model: ['json', 'jsonl', 'js'], language: ['json', 'js'],
     pattern: ['txt', 'js'], renderer: ['js'], resolver: ['js'], service: ['js', 'json'], snippet: ['html', 'js'], transformer: ['js'], type: ['js', 'schema.json', 'json', 'x', 'xdr']
+}), autoIndexes = Object.freeze({
+    ai: 'main', collection: 'index', content: 'index', context: 'default', facet: 'main', gateway: 'main' , hook: 'main', interpreter: 'main', library: 'index', 
+    model: 'main', language: 'index', pattern: 'main', renderer: 'main', resolver: 'main', service: 'main', snippet: 'index', transformer: 'main', type: 'main'
 })
 
 export default async function (unitSource, unitType, initParams = {}) {
@@ -9,6 +12,7 @@ export default async function (unitSource, unitType, initParams = {}) {
     const unitTypeCollectionName = this.sys.unitTypeMap[unitType]?.[0]
     if (!unitTypeCollectionName) return
     let unitUrl, suffixIsExplicit
+    if (unitSource.endsWith('/')) unitSource = `${unitSource}${autoIndexes[unitType]}`
     switch (unitSource[0]) {
         case '.': case '/': suffixIsExplicit = !!(unitUrl = this.resolveUrl(unitSource, undefined, true)); break
         case '~': unitUrl = this.resolveUrl(`/${unitTypeCollectionName}/${unitSource.slice(1)}`, undefined, true); break
