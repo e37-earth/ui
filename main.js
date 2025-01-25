@@ -418,7 +418,7 @@ const UI = Object.defineProperties({}, {
         }
     },
     resolveUnit: { 
-        enumerable: true, value: async function (unitKey, unitType, asUnitKey, initParams = {}) {
+        enumerable: true, value: async function (unitKey, unitType, asUnitKey, initParams = {}, bound) {
             if (!unitKey || !unitType) return
             const unitKeyTest = Array.isArray(unitKey) ? 'array' : (this.isPlainObject(unitKey) ? 'object' : undefined)
             if (unitKeyTest) {
@@ -433,7 +433,7 @@ const UI = Object.defineProperties({}, {
             const { sys, app } = this, [unitTypeCollectionName, unitClassName] = sys.unitTypeMap[unitType], unitClass = typeof unitClassName === 'string' ? this[unitClassName] : unitClassName
             if (typeof unitKey !== 'string') return (unitKey instanceof unitClass) ? unitKey : undefined
             if (!(unitKey = unitKey.trim())) return
-            const key = asUnitKey ?? unitKey
+            const key = asUnitKey || unitKey
             initParams.key ??= key
             let unit = app[unitTypeCollectionName][key]
             if (unit) return await unit
@@ -450,8 +450,9 @@ const UI = Object.defineProperties({}, {
             if (!unitPromise && this.sys.localOnlyUnitTypes.has(unitType)) return
             unitResolver ??= Promise.resolve(this.resolveUnit(unitType, 'resolver') ?? this.defaultResolver)
             unitPromise ??= unitResolver.then(ur => ur.call(this, unitKey, unitType, initParams))
+            console.log(unitKey, bound)
             return app[unitTypeCollectionName][key] = unitPromise
-                .then(u => Object.defineProperty(app[unitTypeCollectionName], key, { configurable: false, enumerable: true, value: u, writable: false })[key])
+                .then(u => Object.defineProperty(app[unitTypeCollectionName], key, { configurable: bound, enumerable: true, value: u, writable: bound })[key])
         }
     },
     resolveUrl: { 
@@ -569,7 +570,8 @@ const UI = Object.defineProperties({}, {
     app: { 
         value: Object.defineProperties({}, {
             cells: { enumerable: true, value: {} }, _components: { value: { nativesFromVirtuals: new WeakMap(), bindings: new WeakMap(), virtualsFromNatives: new WeakMap() } },
-            _eventTarget: { value: new EventTarget() }, _facetInstances: { value: new WeakMap() }, _fragments: { value: {} }, _observers: { value: new WeakMap() }, _failedHrefs: { value: new Set() }
+            _eventTarget: { value: new EventTarget() }, _facetInstances: { value: new WeakMap() }, _fragments: { value: {} }, _observers: { value: new WeakMap() }, 
+            _failedHrefs: { value: new Set() }, _anchorUnitBindings: { value: new WeakMap() }
         })
     },
     modules: { enumerable: true, value: {} }, 
@@ -737,15 +739,17 @@ const UI = Object.defineProperties({}, {
             }
             const promises = []
             if ((element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-'))) {
+                const unitKey = element.content.trim()
                 let [unitType, asUnitKey] = element.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
                 unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
                 const anchor = element
                 if ((unitType in this.sys.unitTypeMap) && element.content) {
                     promises.push(
-                        this.resolveUnit(element.content.trim(), unitType, asUnitKey, { anchor }).then(unit => {
+                        this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, 'bind' in element.dataset).then(unit => {
+                            const key = asUnitKey || unitKey
+                            if ('bind' in element.dataset) this.app._anchorUnitBindings.set(element, {unitType, key})
                             if ('use' in element.dataset) {
                                 const labels = { ...element.dataset }
-                                delete labels.use
                                 return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(element.dataset.use, envelope))
                             }
                         })

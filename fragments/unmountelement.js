@@ -1,7 +1,10 @@
 export default async function (element) {
     if (!(element instanceof HTMLElement)) return
-    // if (this.isFacetContainer(element)) return await this.unmountFacet(element)
-    // change this to an optional data-bind attribute on anchors combined with a WeakMap between the anchor element and the unit instance in UI.app
+    if ('bind' in element.dataset && this.app._anchorUnitBindings.has(element)) {
+        const {unitType, key} = this.app._anchorUnitBindings.get(element)
+        this.app._anchorUnitBindings.delete(element)
+        delete this.app[this.sys.unitTypeMap[unitType][0]][key]
+    }
     if (element.children.length) {
         const promises = []
         for (const n of element.children) promises.push(this.unmountElement(n))
