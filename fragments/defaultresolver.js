@@ -66,7 +66,7 @@ export default async function (unitSource, unitType, initParams = {}) {
             }
             unit ??= unitHash ? ((unitModule && typeof unitModule === 'object') ? unitModule[unitHash] : undefined) : unitModule
     }
-    if (!unit) return
+    if (!unit === undefined) return
     if (unit instanceof Promise) unit = await unit
     const [, unitClassName] = this.sys.unitTypeMap[unitType], unitClass = typeof unitClassName === 'string' ? this[unitClassName] : unitClassName
     if (unit instanceof unitClass) return unit

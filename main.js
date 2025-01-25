@@ -734,17 +734,6 @@ const UI = Object.defineProperties({}, {
                         this.app._components.bindings.set(element, observer)
                     }
                 }
-                const root = (element.shadowRoot || (element === document.documentElement)) ? (element.shadowRoot ?? element) : undefined
-                if (root) {
-                    const observer = new MutationObserver(mutations => {
-                        for (const mutation of mutations) {
-                            for (const addedNode of (mutation.addedNodes || [])) this.mountElement(addedNode)
-                            for (const removedNode of (mutation.removedNodes || [])) this.unmountElement(removedNode)
-                        }
-                    })
-                    observer.observe(root, { subtree: true, childList: true })
-                    this.app._observers.set(root, observer)
-                }
             }
             const promises = []
             if ((element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-'))) {
@@ -764,7 +753,18 @@ const UI = Object.defineProperties({}, {
                 }
             }
             if (element.shadowRoot?.children) for (const n of element.shadowRoot.children) promises.push(this.mountElement(n))
-            for (const n of element.children) promises.push(this.mountElement(n))
+            if (element.children) for (const n of element.children) promises.push(this.mountElement(n))
+            const root = (element.shadowRoot || (element === document.documentElement)) ? (element.shadowRoot ?? element) : undefined
+            if (root) {
+                const observer = new MutationObserver(mutations => {
+                    for (const mutation of mutations) {
+                        for (const addedNode of (mutation.addedNodes || [])) this.mountElement(addedNode)
+                        for (const removedNode of (mutation.removedNodes || [])) this.unmountElement(removedNode)
+                    }
+                })
+                observer.observe(root, { subtree: true, childList: true })
+                this.app._observers.set(root, observer)
+            }
             return Promise.all(promises)
         }
     },
