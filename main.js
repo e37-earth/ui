@@ -744,13 +744,16 @@ const UI = Object.defineProperties({}, {
                 unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
                 const anchor = element
                 if ((unitType in this.sys.unitTypeMap) && element.content) {
+                    const {'if': anchorIf, 'when': anchorWhen, 'switch': anchorSwitch} = element.dataset, 
+                        anchorUse = element.dataset.use === '' ? true : (element.dataset.use ?? false), 
+                        anchorDefault = !!element.dataset.default, anchorOnce = !!element.dataset.once, anchorBind = !!element.dataset.bind
                     promises.push(
-                        this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, 'bind' in element.dataset).then(unit => {
+                        this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(unit => {
                             const key = asUnitKey || unitKey
-                            if ('bind' in element.dataset) this.app._anchorUnitBindings.set(element, {unitType, key})
-                            if ('use' in element.dataset) {
+                            if (anchorBind) this.app._anchorUnitBindings.set(element, {unitType, key})
+                            if (anchorUse) {
                                 const labels = { ...element.dataset }
-                                return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(element.dataset.use, envelope))
+                                return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope))
                             }
                         })
                     )
@@ -1585,13 +1588,14 @@ const UI = Object.defineProperties({}, {
             }
             async use(input, envelope, facet, position, options = {}) {
                 const { E37 } = this.constructor, { UI } = E37, { anchor } = envelope
+                if (input === true || input === '') return await UI.render(anchor ?? document.documentElement, {'::replace': this.template})
+                if (typeof input != 'string') return
                 let [selector, positionQualifier] = input.trim().split('::')
                 if (selector) {
                     if (selector && !selector.includes('|')) selector = `*|${selector.trim()}`
                     return await UI.render(anchor ?? document.documentElement, {[selector.trim()]: {[`::${(positionQualifier || 'replace')}`]: this.template}})
-                } else {
-                    return await UI.render(anchor ?? document.documentElement, {[`::${(positionQualifier || 'replace')}`]: this.template})
                 }
+                return await UI.render(anchor ?? document.documentElement, {[`::${(positionQualifier || 'replace')}`]: this.template})
             }
         }
     },
