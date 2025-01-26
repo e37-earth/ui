@@ -747,8 +747,10 @@ const UI = Object.defineProperties({}, {
                         anchorUse = element.dataset.use === '' ? true : (element.dataset.use ?? false), 
                         anchorDefault = !!element.dataset.default, anchorOnce = !!element.dataset.once, anchorBind = !!element.dataset.bind                    
                     const anchorConditionals = (await this.runFragment('anchorconditionals'))
-
                     if (anchorIf) {
+                        const condition = anchorSwitch ?? 'location.pathname', conditional = anchorConditionals[condition]
+                        if (!conditional) promises.push(Promise.resolve(() => element.remove()))
+
 
                     }
                     promises.push(
