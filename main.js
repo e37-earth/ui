@@ -1352,7 +1352,7 @@ const UI = Object.defineProperties(
                     }
                 }
                 const promises = []
-                if (element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-')) {
+                anchorBlock: if (element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-')) {
                     const unitKey = element.content.trim()
                     let [unitType, asUnitKey] = element.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
                     unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
@@ -1367,7 +1367,10 @@ const UI = Object.defineProperties(
                         if (anchorIf) {
                             const condition = anchorSwitch ?? 'location.pathname',
                                 conditional = anchorConditionals[condition]
-                            if (!conditional) promises.push(Promise.resolve(() => element.remove()))
+                            if (!conditional) {
+                                promises.push(Promise.resolve(() => element.remove()))
+                                break anchorBlock
+                            }
                         }
                         promises.push(
                             this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(unit => {
