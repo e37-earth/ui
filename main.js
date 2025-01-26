@@ -450,7 +450,6 @@ const UI = Object.defineProperties({}, {
             if (!unitPromise && this.sys.localOnlyUnitTypes.has(unitType)) return
             unitResolver ??= Promise.resolve(this.resolveUnit(unitType, 'resolver') ?? this.defaultResolver)
             unitPromise ??= unitResolver.then(ur => ur.call(this, unitKey, unitType, initParams))
-            console.log(unitKey, bound)
             return app[unitTypeCollectionName][key] = unitPromise
                 .then(u => Object.defineProperty(app[unitTypeCollectionName], key, { configurable: bound, enumerable: true, value: u, writable: bound })[key])
         }
@@ -746,7 +745,12 @@ const UI = Object.defineProperties({}, {
                 if ((unitType in this.sys.unitTypeMap) && element.content) {
                     const {'if': anchorIf, 'when': anchorWhen, 'switch': anchorSwitch} = element.dataset, 
                         anchorUse = element.dataset.use === '' ? true : (element.dataset.use ?? false), 
-                        anchorDefault = !!element.dataset.default, anchorOnce = !!element.dataset.once, anchorBind = !!element.dataset.bind
+                        anchorDefault = !!element.dataset.default, anchorOnce = !!element.dataset.once, anchorBind = !!element.dataset.bind                    
+                    const anchorConditionals = (await this.runFragment('anchorconditionals'))
+
+                    if (anchorIf) {
+
+                    }
                     promises.push(
                         this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(unit => {
                             const key = asUnitKey || unitKey
