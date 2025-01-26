@@ -1054,6 +1054,7 @@ const UI = Object.defineProperties(
                     _observers: { value: new WeakMap() },
                     _failedHrefs: { value: new Set() },
                     _anchorUnitBindings: { value: new WeakMap() },
+                    _anchorWhenWatchers: { value: new WeakMap() },
                 }
             ),
         },

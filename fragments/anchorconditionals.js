@@ -41,13 +41,33 @@ const doComparison = (currentValue, compareWith) => {
                 if (!isNaN(compareWithRawTrimmed) && compareWithRawTrimmed.trim() !== '') return Number(compareWithRawTrimmed)
                 return compareWithRawTrimmed
         }
+    },
+    requestIdleCallback = (callback, options = {}) => {
+        if (window.requestIdleCallback) return window.requestIdleCallback(callback, options)
+        const start = Date.now()
+        return setTimeout(() => {
+            callback()
+        }, options.timeout || 1)
+    },
+    cancelIdleCallback = id => {
+        if (window.cancelIdleCallback) return window.cancelIdleCallback(id)
+        return clearTimeout(id)
     }
 
 export default {
     E37: async (anchorElement, subConditions, compareWith, isWhen) => {
-        let currentValue = { UI: this }
+        const scopeValue = { UI: this }
+        let currentValue = scopeValue
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-        return doComparison(currentValue, compareWith)
+        if (!isWhen) return doComparison(currentValue, compareWith)
+        const whenWatcher = { value: undefined, target: new EventTarget() }
+        whenWatcher.callback = requestIdleCallback(() => {
+            let currentValue = scopeValue
+            for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
+            whenWatcher.value = doComparison(currentValue, compareWith)
+            whenWatcher.target.dispatchEvent(new CustomEvent('change', { detail: whenWatcher.value }))
+        })
+        this.app._anchorWhenWatchers.set(anchorElement, whenWatcher)
     },
     dev: async (anchorElement, subConditions, compareWith, isWhen) => !!this.modules.dev === normalizeCompareWith(compareWith || true),
     location: async (anchorElement, subConditions, compareWith, isWhen) => {
