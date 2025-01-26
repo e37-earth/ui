@@ -1226,11 +1226,11 @@ const UI = Object.defineProperties(
                             anchorDefault = !!element.dataset.default,
                             anchorOnce = !!element.dataset.once,
                             anchorBind = !!element.dataset.bind
+                        const anchorConditionals = anchorWhen && anchorIf && !anchorDefault ? await this.runFragment('anchorconditionals') : undefined
                         ifBlock: if (anchorIf) {
                             const switchGroup = element.parentElement.querySelectorAll(`meta[name="${element.name}"][data-switch="${anchorSwitch}"][data-if]:not([data-when])`)
                             if (anchorDefault && switchGroup.length === 1) break ifBlock
-                            const anchorConditionals = await this.runFragment('anchorconditionals'),
-                                [condition, ...subConditions] = anchorSwitch.split('.'),
+                            const [condition, ...subConditions] = anchorSwitch.split('.'),
                                 conditional = anchorConditionals[condition]
                             if (!conditional) {
                                 promises.push(Promise.resolve(() => element.remove()))
@@ -1238,17 +1238,34 @@ const UI = Object.defineProperties(
                             }
                             const conditionIsTrue = await conditional.call(this, element, subConditions, anchorIf)
                             if (conditionIsTrue) {
-                                if (switchGroup.length > 1) for (const anchorElement of switchGroup) if (anchorElement !== element) anchorElement.remove()
+                                if (switchGroup.length > 1) for (const caseElement of switchGroup) if (caseElement !== element) caseElement.remove()
                             } else {
                                 element.remove()
                                 break anchorBlock
                             }
                         }
                         promises.push(
-                            this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(unit => {
+                            this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(async unit => {
                                 const key = asUnitKey || unitKey
                                 if (anchorBind) this.app._anchorUnitBindings.set(element, { unitType, key })
                                 if (anchorUse) {
+                                    if (anchorWhen && !anchorIf) {
+                                        const [condition, ...subConditions] = anchorSwitch.split('.'),
+                                            conditional = anchorConditionals[condition]
+                                        if (!conditional) return promises.push(Promise.resolve(() => element.remove()))
+                                        return conditional.call(
+                                            this,
+                                            element,
+                                            subConditions,
+                                            anchorWhen || anchorDefault,
+                                            active => {
+                                                if (!active) return unit.unuse()
+                                                const labels = { ...element.dataset }
+                                                return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope))
+                                            },
+                                            anchorOnce
+                                        )
+                                    }
                                     const labels = { ...element.dataset }
                                     return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope))
                                 }

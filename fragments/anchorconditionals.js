@@ -55,11 +55,11 @@ const doComparison = (currentValue, compareWith) => {
     }
 
 export default {
-    E37: async (anchorElement, subConditions, compareWith, isWhen) => {
+    E37: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         const scopeValue = { UI: this }
         let currentValue = scopeValue
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-        if (!isWhen) return doComparison(currentValue, compareWith)
+        if (!whenCallback) return doComparison(currentValue, compareWith)
         const whenWatcher = { value: undefined, target: new EventTarget() }
         whenWatcher.callback = requestIdleCallback(() => {
             let currentValue = scopeValue
@@ -69,21 +69,21 @@ export default {
         })
         this.app._anchorWhenWatchers.set(anchorElement, whenWatcher)
     },
-    dev: async (anchorElement, subConditions, compareWith, isWhen) => !!this.modules.dev === normalizeCompareWith(compareWith || true),
-    location: async (anchorElement, subConditions, compareWith, isWhen) => {
+    dev: async (anchorElement, subConditions, compareWith, whenCallback, once) => !!this.modules.dev === normalizeCompareWith(compareWith || true),
+    location: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = document.location
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    root: async (anchorElement, subConditions, compareWith, isWhen) => {
+    root: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = await this.flatten(anchorElement.getRootNode())
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    lang: async (anchorElement, subConditions, compareWith, isWhen) => {
+    lang: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         return doComparison(document.documentElement.lang || navigator.language, compareWith)
     },
-    cell: async (anchorElement, subConditions, compareWith, isWhen) => {
+    cell: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         if (subConditions.length) {
             const cellName = subConditions.shift().trim()
             if (!(cellName in this.app.cells)) return false
@@ -93,30 +93,30 @@ export default {
             return doComparison(currentValue, compareWith)
         } else return doComparison(this.app.cells, compareWith)
     },
-    context: async (anchorElement, subConditions, compareWith, isWhen) => {
+    context: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = this.env.context
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    selector: async (anchorElement, subConditions, compareWith, isWhen) => {
+    selector: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         const resolvedSelector = await this.resolveScopedSelector(compareWith, anchorElement)
         return Array.isArray(resolvedSelector) ? !!resolvedSelector.length : !!resolvedSelector
     },
-    media: async (anchorElement, subConditions, compareWith, isWhen) => {
+    media: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         if (!compareWith) return true
         const mediaQuery = window.matchMedia(compareWith)
         return mediaQuery.matches
     },
-    theme: async (anchorElement, subConditions, compareWith, isWhen) => {
+    theme: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         const mediaQuery = window.matchMedia(`(prefers-color-scheme: ${compareWith.trim().toLowerCase()})`)
         return mediaQuery.matches
     },
-    navigator: async (anchorElement, subConditions, compareWith, isWhen) => {
+    navigator: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = window.navigator
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    datetime: async (anchorElement, subConditions, compareWith, isWhen) => {
+    datetime: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         const now = new Date(),
             compareWithParts = compareWith.split(' ')
         let currentValue
@@ -134,7 +134,7 @@ export default {
         }
         return doComparison(currentValue, compareWithParts.join(' ').trim())
     },
-    visible: async (anchorElement, subConditions, compareWith, isWhen) => {
+    visible: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         const rect = anchorElement.getBoundingClientRect(),
             anchorIsVisible =
                 rect.top >= 0 &&
@@ -143,21 +143,21 @@ export default {
                 rect.right <= (window.innerWidth || document.documentElement.clientWidth)
         return anchorIsVisible === normalizeCompareWith(compareWith)
     },
-    active: async (anchorElement, subConditions, compareWith, isWhen) => {
+    active: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         if (compareWith !== 'visible' && compareWith !== 'hidden') compareWith = normalizeCompareWith(compareWith) ? 'visible' : 'hidden'
         return document.visibilityState === compareWith
     },
-    document: async (anchorElement, subConditions, compareWith, isWhen) => {
+    document: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = document
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    documentElement: async (anchorElement, subConditions, compareWith, isWhen) => {
+    documentElement: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = document.documentElement
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchorElement, subConditions, compareWith, isWhen) => {
+    window: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
         let currentValue = window
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
