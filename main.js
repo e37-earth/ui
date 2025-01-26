@@ -1365,12 +1365,14 @@ const UI = Object.defineProperties(
                             anchorBind = !!element.dataset.bind
                         const anchorConditionals = await this.runFragment('anchorconditionals')
                         if (anchorIf) {
-                            const condition = anchorSwitch ?? 'location.pathname',
+                            const switchStatement = anchorSwitch ?? 'location.pathname',
+                                [condition, ...subConditions] = switchStatement.split('.'),
                                 conditional = anchorConditionals[condition]
                             if (!conditional) {
                                 promises.push(Promise.resolve(() => element.remove()))
                                 break anchorBlock
                             }
+                            const conditionIsTrue = await conditional.call(this, element, subConditions, anchorIf)
                         }
                         promises.push(
                             this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(unit => {
