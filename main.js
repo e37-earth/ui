@@ -1251,25 +1251,16 @@ const UI = Object.defineProperties(
                                 const key = asUnitKey || unitKey
                                 if (anchorBind) this.app._anchorUnitBindings.set(element, { unitType, key })
                                 if (anchorUse) {
+                                    let toggleAble, currentlyEnabled
                                     if (anchorWhen && !anchorIf) {
                                         const [condition, ...subConditions] = anchorSwitch.split('.'),
                                             conditional = anchorConditionals[condition]
                                         if (!conditional) return promises.push(Promise.resolve(() => element.remove()))
-                                        return conditional.call(
-                                            this,
-                                            element,
-                                            subConditions,
-                                            anchorWhen || anchorDefault,
-                                            active => {
-                                                if (!active) return unit.unuse()
-                                                const labels = { ...element.dataset }
-                                                return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope))
-                                            },
-                                            anchorOnce
-                                        )
+                                        toggleAble = true
+                                        currentlyEnabled = await conditional.call(this, element, subConditions, anchorWhen || anchorDefault, true, anchorOnce)
                                     }
                                     const labels = { ...element.dataset }
-                                    return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope))
+                                    return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope, toggleAble, currentlyEnabled))
                                 }
                             })
                         )
