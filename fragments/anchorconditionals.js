@@ -55,7 +55,7 @@ const doComparison = (currentValue, compareWith) => {
     }
 
 export default {
-    E37: async (anchorElement, subConditions, compareWith, unit, once) => {
+    E37: async (anchorElement, subConditions, compareWith, unit, toggleAble, once) => {
         const scopeValue = { UI: this }
         let currentValue = scopeValue
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
@@ -67,7 +67,7 @@ export default {
             whenWatcher.active = doComparison(currentValue, compareWith)
             whenWatcher.target.dispatchEvent(new CustomEvent('change', { detail: whenWatcher.active }))
         })
-        this.app._anchorWhenWatchers.set(anchorElement,whenWatcher)
+        this.app._anchorWhenWatchers.set(anchorElement, whenWatcher)
         return whenWatcher
     },
     dev: async (anchorElement, subConditions, compareWith, whenCallback, once) => !!this.modules.dev === normalizeCompareWith(compareWith || true),

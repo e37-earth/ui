@@ -1251,13 +1251,14 @@ const UI = Object.defineProperties(
                                 const key = asUnitKey || unitKey
                                 if (anchorBind) this.app._anchorUnitBindings.set(element, { unitType, key })
                                 if (anchorUse) {
-                                    let toggleAble, currentlyEnabled
+                                    let toggleAble = false,
+                                        currentlyEnabled = true
                                     if (anchorWhen && !anchorIf) {
                                         const [condition, ...subConditions] = anchorSwitch.split('.'),
                                             conditional = anchorConditionals[condition]
                                         if (!conditional) return promises.push(Promise.resolve(() => element.remove()))
                                         toggleAble = true
-                                        currentlyEnabled = await conditional.call(this, element, subConditions, anchorWhen || anchorDefault, true, anchorOnce)
+                                        currentlyEnabled = await conditional.call(this, element, subConditions, anchorWhen || anchorDefault, unit, toggleAble, anchorOnce)
                                     }
                                     const labels = { ...element.dataset }
                                     return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope, toggleAble, currentlyEnabled))
