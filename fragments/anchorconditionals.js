@@ -60,12 +60,12 @@ export default {
         let currentValue = scopeValue
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         if (!whenCallback) return doComparison(currentValue, compareWith)
-        const whenWatcher = { value: undefined, target: new EventTarget() }
+        const whenWatcher = { active: undefined, target: new EventTarget(), once }
         whenWatcher.callback = requestIdleCallback(() => {
             let currentValue = scopeValue
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-            whenWatcher.value = doComparison(currentValue, compareWith)
-            whenWatcher.target.dispatchEvent(new CustomEvent('change', { detail: whenWatcher.value }))
+            whenWatcher.active = doComparison(currentValue, compareWith)
+            whenWatcher.target.dispatchEvent(new CustomEvent('change', { detail: whenWatcher.active }))
         })
         this.app._anchorWhenWatchers.set(anchorElement, whenWatcher)
     },

@@ -1226,7 +1226,8 @@ const UI = Object.defineProperties(
                             anchorDefault = !!element.dataset.default,
                             anchorOnce = !!element.dataset.once,
                             anchorBind = !!element.dataset.bind
-                        const anchorConditionals = anchorWhen && anchorIf && !anchorDefault ? await this.runFragment('anchorconditionals') : undefined
+                        const anchorConditionals = anchorWhen || (anchorIf && !anchorDefault) ? await this.runFragment('anchorconditionals') : undefined
+                        console.log(anchorConditionals)
                         ifBlock: if (anchorIf) {
                             const switchGroup = element.parentElement.querySelectorAll(`meta[name="${element.name}"][data-switch="${anchorSwitch}"][data-if]:not([data-when])`)
                             if (anchorDefault && switchGroup.length === 1) break ifBlock
