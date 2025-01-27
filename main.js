@@ -941,6 +941,40 @@ const UI = Object.defineProperties(
         modules: { enumerable: true, value: {} },
         sys: {
             value: Object.freeze({
+                blockLevelTags: new Set([
+                    'ADDRESS',
+                    'ARTICLE',
+                    'ASIDE',
+                    'BLOCKQUOTE',
+                    'CANVAS',
+                    'DD',
+                    'DIV',
+                    'DL',
+                    'DT',
+                    'FIELDSET',
+                    'FIGCAPTION',
+                    'FIGURE',
+                    'FOOTER',
+                    'FORM',
+                    'H1',
+                    'H2',
+                    'H3',
+                    'H4',
+                    'H5',
+                    'H6',
+                    'HEADER',
+                    'HR',
+                    'LI',
+                    'MAIN',
+                    'NAV',
+                    'OL',
+                    'P',
+                    'PRE',
+                    'SECTION',
+                    'TABLE',
+                    'UL',
+                    'VIDEO',
+                ]),
                 defaultEventTypes: Object.freeze({
                     audio: 'loadeddata',
                     body: 'load',
@@ -1223,15 +1257,15 @@ const UI = Object.defineProperties(
                     if (unitType in this.sys.unitTypeMap && element.content) {
                         const { if: anchorIf, when: anchorWhen, switch: anchorSwitch } = element.dataset,
                             anchorUse = element.dataset.use === '' ? true : element.dataset.use ?? false,
-                            anchorDefault = 'default' in element.dataset,
+                            anchorIsDefault = 'default' in element.dataset,
                             anchorOnce = 'once' in element.dataset,
                             anchorBind = 'bind' in element.dataset
-                        const anchorConditionals = anchorWhen || (anchorIf && !anchorDefault) ? await this.runFragment('anchorconditionals') : undefined
+                        const anchorConditionals = anchorWhen || (anchorIf && !anchorIsDefault) ? await this.runFragment('anchorconditionals') : undefined
                         ifBlock: if (anchorIf && element.parentElement) {
                             const switchGroup = element.parentElement.querySelectorAll(
                                 `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-default]):not([data-when])`
                             )
-                            if (anchorDefault && switchGroup.length === 1) break ifBlock
+                            if (anchorIsDefault && switchGroup.length === 1) break ifBlock
                             const [condition, ...subConditions] = anchorSwitch.split('.'),
                                 conditional = anchorConditionals[condition]
                             if (!conditional) {
@@ -1252,16 +1286,34 @@ const UI = Object.defineProperties(
                                 if (anchorBind) this.app._anchorUnitBindings.set(element, { unitType, key })
                                 if (anchorUse) {
                                     let toggleAble = false,
-                                        currentlyEnabled = true
+                                        currentlyEnabled,
+                                        conditional
                                     if (anchorWhen && !anchorIf) {
-                                        const [condition, ...subConditions] = anchorSwitch.split('.'),
-                                            conditional = anchorConditionals[condition]
+                                        const [condition, ...subConditions] = anchorSwitch.split('.')
+                                        conditional = anchorConditionals[condition]
                                         if (!conditional) return promises.push(Promise.resolve(() => element.remove()))
                                         toggleAble = true
-                                        currentlyEnabled = await conditional.call(this, element, subConditions, anchorWhen || anchorDefault, unit, toggleAble, anchorOnce)
+                                        const metaQuerySelector = `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-default]):not([data-if])`,
+                                            containerQuerySelector = `.e37-ui-container[data-name="${element.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
+                                        currentlyEnabled =
+                                            !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-enabled]),${containerQuerySelector}:is([data-enabled])`) ||
+                                            anchorIsDefault
                                     }
                                     const labels = { ...element.dataset }
-                                    return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope, toggleAble, currentlyEnabled))
+                                    const anchorContainer = this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope, toggleAble, currentlyEnabled))
+                                    if (toggleAble && anchorContainer && conditional) {
+                                        currentlyEnabled = await conditional.call(
+                                            this,
+                                            element,
+                                            subConditions,
+                                            anchorWhen || anchorIsDefault,
+                                            toggleAble,
+                                            unit,
+                                            anchorContainer,
+                                            anchorOnce
+                                        )
+                                    }
+                                    return anchorContainer
                                 }
                             })
                         )
@@ -2427,22 +2479,42 @@ const UI = Object.defineProperties(
                         else if (t instanceof HTMLElement) this.template.content.append(t.cloneNode(true))
                     }
                 }
-                async use(input, envelope, facet, position, options = {}) {
+                async use(input, envelope, toggleAble, currentlyEnabled) {
                     const { E37 } = this.constructor,
                         { UI } = E37,
-                        { anchor } = envelope
-                    if (input === true || input === '') return await UI.render(anchor ?? document.documentElement, { '::replace': this.template })
-                    if (typeof input != 'string') return
-                    let [selector, positionQualifier] = input.trim().split('::')
-                    if (selector) {
-                        if (selector && !selector.includes('|')) selector = `*|${selector.trim()}`
-                        return await UI.render(anchor ?? document.documentElement, {
-                            [selector.trim()]: { [`::${positionQualifier || 'replace'}`]: this.template },
-                        })
+                        { anchor } = envelope,
+                        template = document.createElement('template')
+                    toggleAble = true
+                    let container
+                    if (toggleAble) {
+                        let containerTag = 'span'
+                        for (const n of this.template.content.children) {
+                            if (UI.sys.blockLevelTags.has(n.tagName) || (n.tagName === 'META' && n.name.slice(0, 14) === 'e37-ui-snippet')) {
+                                containerTag = 'div'
+                                break
+                            }
+                        }
+                        template.innerHTML = `<${containerTag}>${this.template.innerHTML}</${containerTag}>`
+                        container = template.content.firstElementChild
+                    } else template.innerHTML = this.template.innerHTML
+                    if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
+                    else if (typeof input != 'string') return
+                    else {
+                        let [selector, positionQualifier] = input.trim().split('::')
+                        if (selector) {
+                            if (selector && !selector.includes('|')) selector = `*|${selector.trim()}`
+                            await UI.render(anchor ?? document.documentElement, {
+                                [selector.trim()]: { [`::${positionQualifier || 'replace'}`]: template },
+                            })
+                        } else
+                            await UI.render(anchor ?? document.documentElement, {
+                                [`::${positionQualifier || 'replace'}`]: template,
+                            })
                     }
-                    return await UI.render(anchor ?? document.documentElement, {
-                        [`::${positionQualifier || 'replace'}`]: this.template,
-                    })
+                    return container ?? anchor
+                }
+                async run(input, envelope, facet, position, options = {}) {
+                    return await this.use(input, envelope)
                 }
             },
         },
