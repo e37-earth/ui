@@ -1223,12 +1223,14 @@ const UI = Object.defineProperties(
                     if (unitType in this.sys.unitTypeMap && element.content) {
                         const { if: anchorIf, when: anchorWhen, switch: anchorSwitch } = element.dataset,
                             anchorUse = element.dataset.use === '' ? true : element.dataset.use ?? false,
-                            anchorDefault = !!element.dataset.default,
-                            anchorOnce = !!element.dataset.once,
-                            anchorBind = !!element.dataset.bind
+                            anchorDefault = 'default' in element.dataset,
+                            anchorOnce = 'once' in element.dataset,
+                            anchorBind = 'bind' in element.dataset
                         const anchorConditionals = anchorWhen || (anchorIf && !anchorDefault) ? await this.runFragment('anchorconditionals') : undefined
                         ifBlock: if (anchorIf) {
-                            const switchGroup = element.parentElement.querySelectorAll(`meta[name="${element.name}"][data-switch="${anchorSwitch}"][data-if]:not([data-when])`)
+                            const switchGroup = element.parentElement.querySelectorAll(
+                                `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-default]):not([data-when])`
+                            )
                             if (anchorDefault && switchGroup.length === 1) break ifBlock
                             const [condition, ...subConditions] = anchorSwitch.split('.'),
                                 conditional = anchorConditionals[condition]
