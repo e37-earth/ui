@@ -6,7 +6,9 @@ export default async function (element) {
         delete this.app[this.sys.unitTypeMap[unitType][0]][key]
     }
     if (this.app._anchorWhenWatchers.has(element)) {
-        cancelIdleCallback(this.app._anchorWhenWatchers.get(element).callback)
+        const watcher = this.app._anchorWhenWatchers.get(element)
+        watcher?.observer?.disconnect()
+        if (typeof watcher?.stop === 'function') watcher.stop()
     }
     if (element.children.length) {
         const promises = []

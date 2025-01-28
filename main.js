@@ -1294,12 +1294,13 @@ const UI = Object.defineProperties(
                                         toggleAble = (anchorWhen || anchorWhenDefault) && !anchorIf,
                                         anchorParent = anchor.parentElement
                                     let startAsActive,
-                                        watcher = {},
+                                        watcher,
                                         anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`,
                                         isDefault = anchorWhenDefault
                                     if (anchorWhen && !anchorIf) {
                                         startAsActive = await conditional.call(this, anchor, subConditions, anchorWhen)
                                         watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true)
+                                        this.app._anchorWhenWatchers
                                     } else if (anchorWhenDefault && !anchorIf) {
                                         const otherCasesSelector = `${metaQuerySelector}:not([data-when-default]),${containerQuerySelector}:not([data-when-default])`,
                                             otherActiveCasesSelector = `${metaQuerySelector}:not([data-when-default]):is([data-active]),${containerQuerySelector}:not([data-when-default]):is([data-active])`,
@@ -1334,11 +1335,15 @@ const UI = Object.defineProperties(
                                             }
                                         })
                                         observer.observe(anchorParent, { attributes: true, subtree: true, attributeFilter: ['data-active'] })
+                                        watcher = { observer }
                                     }
-                                    const labels = { ...anchor.dataset }
-                                    return this.createEnvelope({ anchor, labels }).then(envelope =>
+                                    ;(await this.createEnvelope({ anchor, labels: { ...anchor.dataset } }).then(envelope =>
                                         unit.use(anchorUse, envelope, toggleAble ? { startAsActive, once, watcher, anchorId, isDefault } : undefined)
-                                    )
+                                    )) ?? anchor
+                                    if (watcher) {
+                                        const anchorContainer = document.getElementById(anchorId)
+                                        if (anchorContainer) this.app._anchorWhenWatchers.set(anchorContainer, watcher)
+                                    }
                                 }
                             })
                         )
@@ -2548,7 +2553,6 @@ const UI = Object.defineProperties(
                                 [`::${positionQualifier || 'replace'}`]: template,
                             })
                     }
-                    return container ?? anchor
                 }
                 async run(input, envelope, facet, position, options = {}) {
                     return await this.use(input, envelope)
