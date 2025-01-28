@@ -42,7 +42,7 @@ const doComparison = (currentValue, compareWith) => {
                 return compareWithRawTrimmed
         }
     },
-    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true, once = false }) => {
+    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true, once = false, anchorId }) => {
         const watcher = {
             active: undefined,
             target: new EventTarget(),
@@ -55,12 +55,14 @@ const doComparison = (currentValue, compareWith) => {
                 const isActive = doComparison(getValue(), compareWith)
                 if (isActive !== this.active) {
                     this.active = isActive
-                    this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))
+                    const container = document.getElementById(anchorId)
+                    container.toggleAttribute('data-active', isActive)
                     if (this.callback) this.callback(this.active)
                     if (once) {
                         this.stop()
                         this.disabled = true
                     }
+                    this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))
                 }
             },
             runIdleLoop() {
@@ -184,12 +186,12 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchorElement, subConditions, compareWith, getWatcher, once = false) => {
+    window: async (anchor, subConditions, compareWith, getWatcher, anchorId, once = false) => {
         const getValue = () => {
             let currentValue = window
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true, once }) : doComparison(getValue(), compareWith)
+        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, interval: 100, useIdle: true, once, anchorId }) : doComparison(getValue(), compareWith)
     },
 }

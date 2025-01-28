@@ -1299,7 +1299,7 @@ const UI = Object.defineProperties(
                                         isDefault = anchorWhenDefault
                                     if (anchorWhen && !anchorIf) {
                                         startAsActive = await conditional.call(this, anchor, subConditions, anchorWhen)
-                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true, once)
+                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true, anchorId, once)
                                         this.app._anchorWhenWatchers
                                     } else if (anchorWhenDefault && !anchorIf) {
                                         const otherCasesSelector = `${metaQuerySelector}:not([data-when-default]),${containerQuerySelector}:not([data-when-default])`,
@@ -1345,6 +1345,7 @@ const UI = Object.defineProperties(
                                     if (watcher) {
                                         const anchorContainer = document.getElementById(anchorId)
                                         if (anchorContainer) this.app._anchorWhenWatchers.set(anchorContainer, watcher)
+                                        if (typeof watcher.start === 'function') watcher.start()
                                     }
                                 }
                             })
@@ -2531,15 +2532,8 @@ const UI = Object.defineProperties(
                         for (const attrName of anchor.getAttributeNames()) container.setAttribute(attrName, anchor.getAttribute(attrName))
                         container.classList.add('e37-ui-container')
                         container.id = anchorId
-                        if (!startAsActive) container.style.setProperty('display', 'none')
-                        if (watcher) {
-                            watcher.callback = isActive => {
-                                const container = document.getElementById(anchorId)
-                                container.toggleAttribute('data-active', isActive)
-                                isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
-                            }
-                            if (typeof watcher.start === 'function') watcher.start()
-                        }
+                        await this.toggle(startAsActive, container)
+                        if (watcher) watcher.callback = isActive => this.toggle(isActive, anchorId)
                     } else template.innerHTML = this.template.innerHTML
                     if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
                     else if (typeof input != 'string') return
@@ -2559,7 +2553,10 @@ const UI = Object.defineProperties(
                 async run(input, envelope, facet, position, options = {}) {
                     return await this.use(input, envelope)
                 }
-                async toggle(enabled) {}
+                async toggle(isActive, anchorContainer) {
+                    const container = anchorContainer instanceof HTMLElement ? anchorContainer : document.getElementById(anchorContainer)
+                    isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
+                }
             },
         },
         State: {
