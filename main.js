@@ -1288,22 +1288,26 @@ const UI = Object.defineProperties(
                                 const key = asUnitKey || unitKey
                                 if (anchorBind) this.app._anchorUnitBindings.set(anchor, { unitType, key })
                                 if (anchorUse) {
+                                    const metaQuerySelector = `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
+                                        containerQuerySelector = `.e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`,
+                                        caseAnchorSelector = `${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`
                                     let toggleAble = false,
                                         startAsActive,
                                         watcher,
-                                        anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`
+                                        anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`,
+                                        isDefault = anchorWhenDefault
                                     if ((anchorWhen || anchorWhenDefault) && !anchorIf) {
                                         toggleAble = true
-                                        const metaQuerySelector = `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
-                                            containerQuerySelector = `.e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
-                                        startAsActive =
-                                            !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`) ||
-                                            anchorWhenDefault
-                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen || anchorWhenDefault, true)
+                                        startAsActive = !!anchor.parentElement.querySelector(caseAnchorSelector) || anchorWhenDefault
+                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen || anchorWhenDefault, true, {
+                                            caseAnchorSelector,
+                                            anchorId,
+                                            isDefault,
+                                        })
                                     }
                                     const labels = { ...anchor.dataset }
                                     return this.createEnvelope({ anchor, labels }).then(envelope =>
-                                        unit.use(anchorUse, envelope, toggleAble ? { startAsActive, once, watcher, anchorId } : undefined)
+                                        unit.use(anchorUse, envelope, toggleAble ? { startAsActive, once, watcher, anchorId, isDefault } : undefined)
                                     )
                                 }
                             })
@@ -2477,7 +2481,7 @@ const UI = Object.defineProperties(
                         template = document.createElement('template')
                     let container
                     if (toggleOptions) {
-                        const { startAsActive, once, watcher, anchorId } = toggleOptions
+                        const { startAsActive, once, watcher, anchorId, isDefault, caseAnchorSelector } = toggleOptions
                         let containerTag = 'span'
                         for (const n of this.template.content.children) {
                             if (UI.sys.blockLevelTags.has(n.tagName) || (n.tagName === 'META' && n.name.slice(0, 14) === 'e37-ui-snippet')) {
@@ -2493,8 +2497,9 @@ const UI = Object.defineProperties(
                         container.dataset.switch = anchor.dataset.switch
                         if (!startAsActive) container.style.setProperty('display', 'none')
                         watcher.callback = isActive => {
+                            if (isDefault) console.log(anchorId, isActive)
                             const container = document.getElementById(anchorId)
-                            container.dataset.active = isActive
+                            container.toggleAttribute('data-active', isActive)
                             isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
                         }
                         watcher.start()

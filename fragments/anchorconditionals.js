@@ -42,7 +42,7 @@ const doComparison = (currentValue, compareWith) => {
                 return compareWithRawTrimmed
         }
     },
-    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true }) => {
+    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true, anchorElement, watcherOptions }) => {
         const watcher = {
             active: undefined,
             target: new EventTarget(),
@@ -51,7 +51,9 @@ const doComparison = (currentValue, compareWith) => {
             interval,
             checkValue() {
                 const currentValue = getValue(),
-                    isActive = compareWith !== true ? doComparison(currentValue, compareWith) : null
+                    { caseAnchorSelector, anchorId, isDefault } = watcherOptions,
+                    isActive = compareWith === true ? !document.getElementById(anchorId).parentElement.querySelector(caseAnchorSelector) : doComparison(currentValue, compareWith)
+
                 if (isActive !== this.active) {
                     this.active = isActive
                     this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))
@@ -179,12 +181,14 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchorElement, subConditions, compareWith, getWatcher) => {
+    window: async (anchorElement, subConditions, compareWith, getWatcher, watcherOptions = {}) => {
         const getValue = () => {
             let currentValue = window
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true }) : doComparison(getValue(), compareWith)
+        if (!getWatcher) return doComparison(getValue(), compareWith)
+        const watcher = await createWatcher({ getValue, compareWith, interval: 100, useIdle: true, anchorElement, watcherOptions })
+        return watcher
     },
 }
