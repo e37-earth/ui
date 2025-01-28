@@ -1257,13 +1257,13 @@ const UI = Object.defineProperties(
                     if (unitType in this.sys.unitTypeMap && element.content) {
                         const { if: anchorIf, when: anchorWhen, switch: anchorSwitch } = element.dataset,
                             anchorUse = element.dataset.use === '' ? true : element.dataset.use ?? false,
-                            anchorIsDefault = 'default' in element.dataset,
+                            anchorIsDefault = (anchorIf && 'ifDefault' in element.dataset) || (anchorWhen && 'whenDefault' in element.dataset),
                             anchorOnce = 'once' in element.dataset,
                             anchorBind = 'bind' in element.dataset
                         const anchorConditionals = anchorWhen || (anchorIf && !anchorIsDefault) ? await this.runFragment('anchorconditionals') : undefined
                         ifBlock: if (anchorIf && element.parentElement) {
                             const switchGroup = element.parentElement.querySelectorAll(
-                                `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-default]):not([data-when])`
+                                `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
                             )
                             if (anchorIsDefault && switchGroup.length === 1) break ifBlock
                             const [condition, ...subConditions] = anchorSwitch.split('.'),
@@ -1293,8 +1293,8 @@ const UI = Object.defineProperties(
                                         conditional = anchorConditionals[condition]
                                         if (!conditional) return promises.push(Promise.resolve(() => element.remove()))
                                         toggleAble = true
-                                        const metaQuerySelector = `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-default]):not([data-if])`,
-                                            containerQuerySelector = `.e37-ui-container[data-name="${element.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
+                                        const metaQuerySelector = `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
+                                            containerQuerySelector = `.e37-ui-container[name="${element.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
                                         currentlyEnabled =
                                             !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-enabled]),${containerQuerySelector}:is([data-enabled])`) ||
                                             anchorIsDefault
@@ -2484,7 +2484,6 @@ const UI = Object.defineProperties(
                         { UI } = E37,
                         { anchor } = envelope,
                         template = document.createElement('template')
-                    toggleAble = true
                     let container
                     if (toggleAble) {
                         let containerTag = 'span'
@@ -2496,6 +2495,9 @@ const UI = Object.defineProperties(
                         }
                         template.innerHTML = `<${containerTag}>${this.template.innerHTML}</${containerTag}>`
                         container = template.content.firstElementChild
+                        container.classList.add('e37-ui-container')
+                        container.name = anchor.name
+                        container.dataset.switch = anchor.dataset.switch
                     } else template.innerHTML = this.template.innerHTML
                     if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
                     else if (typeof input != 'string') return
