@@ -1261,18 +1261,18 @@ const UI = Object.defineProperties(
                             anchorWhenDefault = 'whenDefault' in anchor.dataset,
                             once = 'once' in anchor.dataset,
                             anchorBind = 'bind' in anchor.dataset,
-                            anchorConditionals = await this.runFragment('anchorconditionals')
+                            anchorConditionals = anchorSwitch ? await this.runFragment('anchorconditionals') : undefined,
+                            [condition, ...subConditions] = anchorSwitch ? anchorSwitch.split('.') : [],
+                            conditional = anchorSwitch ? anchorConditionals[condition] : undefined
+                        if (anchorSwitch && !conditional) {
+                            promises.push(Promise.resolve(() => anchor.remove()))
+                            break anchorBlock
+                        }
                         ifBlock: if ((anchorIf || anchorIfDefault) && anchor.parentElement) {
                             const switchGroup = anchor.parentElement.querySelectorAll(
                                 `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
                             )
                             if (anchorIfDefault && switchGroup.length === 1) break ifBlock
-                            const [condition, ...subConditions] = anchorSwitch.split('.'),
-                                conditional = anchorConditionals[condition]
-                            if (!conditional) {
-                                promises.push(Promise.resolve(() => anchor.remove()))
-                                break anchorBlock
-                            }
                             const conditionIsTrue = anchorIf ? await conditional.call(this, anchor, subConditions, anchorIf) : undefined
                             if (conditionIsTrue) {
                                 if (switchGroup.length > 1) for (const caseElement of switchGroup) if (caseElement !== anchor) caseElement.remove()
@@ -1289,21 +1289,22 @@ const UI = Object.defineProperties(
                                 if (anchorBind) this.app._anchorUnitBindings.set(anchor, { unitType, key })
                                 if (anchorUse) {
                                     let toggleAble = false,
-                                        enabled,
-                                        conditional
+                                        startAsEnabled,
+                                        watcher,
+                                        anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`
                                     if ((anchorWhen || anchorWhenDefault) && !anchorIf) {
-                                        const [condition, ...subConditions] = anchorSwitch.split('.')
-                                        conditional = anchorConditionals[condition]
-                                        if (!conditional) return promises.push(Promise.resolve(() => anchor.remove()))
                                         toggleAble = true
                                         const metaQuerySelector = `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
                                             containerQuerySelector = `.e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
-                                        enabled =
+                                        startAsEnabled =
                                             !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-enabled]),${containerQuerySelector}:is([data-enabled])`) ||
                                             anchorWhenDefault
+                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen || anchorWhenDefault, true)
                                     }
                                     const labels = { ...anchor.dataset }
-                                    return this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope, toggleAble, { enabled, once }))
+                                    return this.createEnvelope({ anchor, labels }).then(envelope =>
+                                        unit.use(anchorUse, envelope, toggleAble ? { startAsEnabled, once, watcher, anchorId } : undefined)
+                                    )
                                 }
                             })
                         )
@@ -2469,13 +2470,14 @@ const UI = Object.defineProperties(
                         else if (t instanceof HTMLElement) this.template.content.append(t.cloneNode(true))
                     }
                 }
-                async use(input, envelope, toggleAble, currentlyEnabled) {
+                async use(input, envelope, toggleOptions) {
                     const { E37 } = this.constructor,
                         { UI } = E37,
                         { anchor } = envelope,
                         template = document.createElement('template')
                     let container
-                    if (toggleAble) {
+                    if (toggleOptions) {
+                        const { startAsEnabled, once, watcher, anchorId } = toggleOptions
                         let containerTag = 'span'
                         for (const n of this.template.content.children) {
                             if (UI.sys.blockLevelTags.has(n.tagName) || (n.tagName === 'META' && n.name.slice(0, 14) === 'e37-ui-snippet')) {
@@ -2486,8 +2488,15 @@ const UI = Object.defineProperties(
                         template.innerHTML = `<${containerTag}>${this.template.innerHTML}</${containerTag}>`
                         container = template.content.firstElementChild
                         container.classList.add('e37-ui-container')
+                        container.id = anchorId
                         container.name = anchor.name
                         container.dataset.switch = anchor.dataset.switch
+                        if (!startAsEnabled) container.style.setProperty('display', 'none')
+                        watcher.callback = isActive => {
+                            const container = document.getElementById(anchorId)
+                            isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
+                        }
+                        watcher.start()
                     } else template.innerHTML = this.template.innerHTML
                     if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
                     else if (typeof input != 'string') return
@@ -2508,6 +2517,7 @@ const UI = Object.defineProperties(
                 async run(input, envelope, facet, position, options = {}) {
                     return await this.use(input, envelope)
                 }
+                async toggle(enabled) {}
             },
         },
         State: {

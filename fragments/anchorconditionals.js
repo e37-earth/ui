@@ -42,35 +42,54 @@ const doComparison = (currentValue, compareWith) => {
                 return compareWithRawTrimmed
         }
     },
-    requestIdleCallback = (callback, options = {}) => {
-        if (window.requestIdleCallback) return window.requestIdleCallback(callback, options)
-        const start = Date.now()
-        return setTimeout(() => {
-            callback()
-        }, options.timeout || 1)
-    },
-    cancelIdleCallback = id => {
-        if (window.cancelIdleCallback) return window.cancelIdleCallback(id)
-        return clearTimeout(id)
+    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true }) => {
+        const watcher = {
+            active: undefined,
+            target: new EventTarget(),
+            callback,
+            idleHandle: null,
+            interval,
+            checkValue() {
+                const currentValue = getValue(),
+                    isActive = doComparison(currentValue, compareWith)
+                if (isActive !== this.active) {
+                    this.active = isActive
+                    this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))
+                    if (this.callback) this.callback(this.active)
+                }
+            },
+            runIdleLoop() {
+                const run = deadline => {
+                    if (deadline.timeRemaining() > 0) this.checkValue()
+                    this.idleHandle = window.requestIdleCallback(run, { timeout: this.interval })
+                }
+                this.idleHandle = window.requestIdleCallback(run, { timeout: this.interval })
+            },
+            start() {
+                if (window.requestIdleCallback && useIdle) this.runIdleLoop()
+                else this.intervalId = setInterval(() => this.checkValue(), this.interval)
+            },
+            stop() {
+                if (window.cancelIdleCallback && useIdle) {
+                    cancelIdleCallback(this.idleHandle)
+                    this.idleHandle = null
+                } else {
+                    clearInterval(this.intervalId)
+                    this.intervalId = null
+                }
+            },
+        }
+        return watcher
     }
 
 export default {
-    E37: async (anchorElement, subConditions, compareWith, toggleAble, unit, anchorContainer, once) => {
-        const scopeValue = { UI: this }
-        let currentValue = scopeValue
-        for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-        const currentlyEnabled = doComparison(currentValue, compareWith)
-        if (toggleAble) {
-            const whenWatcher = { active: undefined, target: new EventTarget(), callback: enable => unit.toggle(enable), once }
-            whenWatcher.callback = requestIdleCallback(() => {
-                let currentValue = scopeValue
-                for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-                whenWatcher.active = doComparison(currentValue, compareWith)
-                whenWatcher.target.dispatchEvent(new CustomEvent('change', { detail: whenWatcher.active }))
-            })
-            this.app._anchorWhenWatchers.set(anchorElement, whenWatcher)
+    E37: async (anchorElement, subConditions, compareWith, getWatcher) => {
+        const getValue = () => {
+            let currentValue = { UI: this }
+            for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
+            return currentValue
         }
-        return currentlyEnabled
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true }) : doComparison(getValue(), compareWith)
     },
     dev: async (anchorElement, subConditions, compareWith, whenCallback, once) => !!this.modules.dev === normalizeCompareWith(compareWith || true),
     location: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
@@ -160,9 +179,12 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
-        let currentValue = window
-        for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-        return doComparison(currentValue, compareWith)
+    window: async (anchorElement, subConditions, compareWith, getWatcher) => {
+        const getValue = () => {
+            let currentValue = window
+            for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
+            return currentValue
+        }
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true }) : doComparison(getValue(), compareWith)
     },
 }
