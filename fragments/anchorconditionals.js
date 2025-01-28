@@ -186,12 +186,12 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchor, subConditions, compareWith, getWatcher, anchorId, once = false, useIdle = false, interval = 100) => {
+    window: async (anchor, subConditions, compareWith, getWatcher, anchorId, once = false, useIdle = false, interval) => {
         const getValue = () => {
             let currentValue = window
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, interval: 100, useIdle, interval, once, anchorId }) : doComparison(getValue(), compareWith)
+        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, useIdle, interval, once, anchorId }) : doComparison(getValue(), compareWith)
     },
 }
