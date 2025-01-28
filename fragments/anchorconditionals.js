@@ -42,19 +42,25 @@ const doComparison = (currentValue, compareWith) => {
                 return compareWithRawTrimmed
         }
     },
-    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true }) => {
+    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true, once = false }) => {
         const watcher = {
             active: undefined,
             target: new EventTarget(),
             callback,
             idleHandle: null,
             interval,
+            disabled: undefined,
             checkValue() {
+                if (this.disabled) return
                 const isActive = doComparison(getValue(), compareWith)
                 if (isActive !== this.active) {
                     this.active = isActive
                     this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))
                     if (this.callback) this.callback(this.active)
+                    if (once) {
+                        this.stop()
+                        this.disabled = true
+                    }
                 }
             },
             runIdleLoop() {
@@ -178,12 +184,12 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchorElement, subConditions, compareWith, getWatcher) => {
+    window: async (anchorElement, subConditions, compareWith, getWatcher, once = false) => {
         const getValue = () => {
             let currentValue = window
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true }) : doComparison(getValue(), compareWith)
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true, once }) : doComparison(getValue(), compareWith)
     },
 }

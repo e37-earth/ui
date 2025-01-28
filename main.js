@@ -1299,7 +1299,7 @@ const UI = Object.defineProperties(
                                         isDefault = anchorWhenDefault
                                     if (anchorWhen && !anchorIf) {
                                         startAsActive = await conditional.call(this, anchor, subConditions, anchorWhen)
-                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true)
+                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true, once)
                                         this.app._anchorWhenWatchers
                                     } else if (anchorWhenDefault && !anchorIf) {
                                         const otherCasesSelector = `${metaQuerySelector}:not([data-when-default]),${containerQuerySelector}:not([data-when-default])`,
@@ -1315,6 +1315,7 @@ const UI = Object.defineProperties(
                                         startAsActive = !areActiveCases
                                         anchor.toggleAttribute('data-active', startAsActive)
                                         const observer = new MutationObserver(mutations => {
+                                            if (watcher.disabled) return
                                             const otherCases = new Set(anchorParent.querySelectorAll(otherCasesSelector))
                                             let isRelevant = false
                                             for (const mutation of mutations) {
@@ -1330,6 +1331,7 @@ const UI = Object.defineProperties(
                                                     if (changeInactiveToActive || changeActiveToInactive) {
                                                         defaultCase.toggleAttribute('data-active', defaultIsActive)
                                                         if (typeof watcher?.callback === 'function') watcher.callback(defaultIsActive)
+                                                        if (once) watcher.disabled = true
                                                     }
                                                 }
                                             }
@@ -2516,7 +2518,7 @@ const UI = Object.defineProperties(
                         template = document.createElement('template')
                     let container
                     if (toggleOptions) {
-                        const { startAsActive, once, watcher, anchorId, isDefault, caseAnchorSelector } = toggleOptions
+                        const { startAsActive, watcher, anchorId } = toggleOptions
                         let containerTag = 'span'
                         for (const n of this.template.content.children) {
                             if (UI.sys.blockLevelTags.has(n.tagName) || (n.tagName === 'META' && n.name.slice(0, 14) === 'e37-ui-snippet')) {
