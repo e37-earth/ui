@@ -1288,22 +1288,52 @@ const UI = Object.defineProperties(
                                 const key = asUnitKey || unitKey
                                 if (anchorBind) this.app._anchorUnitBindings.set(anchor, { unitType, key })
                                 if (anchorUse) {
-                                    const metaQuerySelector = `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
-                                        containerQuerySelector = `.e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`,
-                                        caseAnchorSelector = `${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`
-                                    let toggleAble = false,
-                                        startAsActive,
+                                    const metaQuerySelector = `:scope > meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
+                                        containerQuerySelector = `:scope > .e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`,
+                                        caseAnchorSelector = `${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`,
+                                        toggleAble = (anchorWhen || anchorWhenDefault) && !anchorIf,
+                                        anchorParent = anchor.parentElement
+                                    let startAsActive,
                                         watcher,
                                         anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`,
                                         isDefault = anchorWhenDefault
-                                    if ((anchorWhen || anchorWhenDefault) && !anchorIf) {
-                                        toggleAble = true
-                                        startAsActive = !!anchor.parentElement.querySelector(caseAnchorSelector) || anchorWhenDefault
-                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen || anchorWhenDefault, true, {
-                                            caseAnchorSelector,
-                                            anchorId,
-                                            isDefault,
+                                    if (anchorWhen && !anchorIf) {
+                                        startAsActive = await conditional.call(this, anchor, subConditions, anchorWhen)
+                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true)
+                                    } else if (anchorWhenDefault && !anchorIf) {
+                                        const otherCasesSelector = `${metaQuerySelector}:not([data-when-default]),${containerQuerySelector}:not([data-when-default])`,
+                                            otherActiveCasesSelector = `${metaQuerySelector}:not([data-when-default]):is([data-active]),${containerQuerySelector}:not([data-when-default]):is([data-active])`,
+                                            defaultCaseSelector = `${metaQuerySelector}:is([data-when-default]),${containerQuerySelector}:is([data-when-default])`,
+                                            otherCases = new Set(anchorParent.querySelectorAll(otherCasesSelector))
+                                        let areActiveCases = false
+                                        for (const c of otherCases) {
+                                            if (c === anchor) continue
+                                            areActiveCases ||= await conditional.call(this, c, subConditions, c.dataset.when)
+                                            if (areActiveCases) break
+                                        }
+                                        startAsActive = !areActiveCases
+                                        anchor.toggleAttribute('data-active', startAsActive)
+                                        const observer = new MutationObserver(mutations => {
+                                            const otherCases = new Set(anchorParent.querySelectorAll(otherCasesSelector))
+                                            let isRelevant = false
+                                            for (const mutation of mutations) {
+                                                isRelevant ||= mutation.type === 'attributes' && mutation.attributeName === 'data-active' && otherCases.has(mutation.target)
+                                                if (isRelevant) break
+                                            }
+                                            if (isRelevant) {
+                                                const defaultIsActive = !anchorParent.querySelector(otherActiveCasesSelector),
+                                                    defaultCase = anchorParent.querySelector(defaultCaseSelector)
+                                                if (defaultCase) {
+                                                    const changeInactiveToActive = defaultIsActive && !('active' in defaultCase.dataset),
+                                                        changeActiveToInactive = !defaultIsActive && 'active' in defaultCase.dataset
+                                                    if (changeInactiveToActive || changeActiveToInactive) {
+                                                        defaultCase.toggleAttribute('data-active', defaultIsActive)
+                                                    }
+                                                }
+                                            }
                                         })
+                                        observer.observe(anchorParent, { attributes: true, subtree: true, attributeFilter: ['data-active'] })
+                                        // watcher = { observer }
                                     }
                                     const labels = { ...anchor.dataset }
                                     return this.createEnvelope({ anchor, labels }).then(envelope =>
@@ -2491,18 +2521,18 @@ const UI = Object.defineProperties(
                         }
                         template.innerHTML = `<${containerTag}>${this.template.innerHTML}</${containerTag}>`
                         container = template.content.firstElementChild
+                        for (const attrName of anchor.getAttributeNames()) container.setAttribute(attrName, anchor.getAttribute(attrName))
                         container.classList.add('e37-ui-container')
                         container.id = anchorId
-                        container.setAttribute('name', anchor.getAttribute('name'))
-                        container.dataset.switch = anchor.dataset.switch
                         if (!startAsActive) container.style.setProperty('display', 'none')
-                        watcher.callback = isActive => {
-                            if (isDefault) console.log(anchorId, isActive)
-                            const container = document.getElementById(anchorId)
-                            container.toggleAttribute('data-active', isActive)
-                            isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
+                        if (watcher) {
+                            watcher.callback = isActive => {
+                                const container = document.getElementById(anchorId)
+                                container.toggleAttribute('data-active', isActive)
+                                isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
+                            }
+                            watcher.start()
                         }
-                        watcher.start()
                     } else template.innerHTML = this.template.innerHTML
                     if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
                     else if (typeof input != 'string') return
