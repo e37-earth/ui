@@ -2493,7 +2493,7 @@ const UI = Object.defineProperties(
                         container = template.content.firstElementChild
                         container.classList.add('e37-ui-container')
                         container.id = anchorId
-                        container.name = anchor.name
+                        container.setAttribute('name', anchor.getAttribute('name'))
                         container.dataset.switch = anchor.dataset.switch
                         if (!startAsActive) container.style.setProperty('display', 'none')
                         watcher.callback = isActive => {

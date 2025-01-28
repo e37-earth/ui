@@ -43,6 +43,7 @@ const doComparison = (currentValue, compareWith) => {
         }
     },
     createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true, anchorElement, watcherOptions }) => {
+        console.log(watcherOptions)
         const watcher = {
             active: undefined,
             target: new EventTarget(),
@@ -52,8 +53,7 @@ const doComparison = (currentValue, compareWith) => {
             checkValue() {
                 const currentValue = getValue(),
                     { caseAnchorSelector, anchorId, isDefault } = watcherOptions,
-                    isActive = compareWith === true ? !document.getElementById(anchorId).parentElement.querySelector(caseAnchorSelector) : doComparison(currentValue, compareWith)
-
+                    isActive = compareWith === true ? !!document.getElementById(anchorId).parentElement.querySelector(caseAnchorSelector) : doComparison(currentValue, compareWith)
                 if (isActive !== this.active) {
                     this.active = isActive
                     this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))
