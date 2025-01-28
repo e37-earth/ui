@@ -1294,7 +1294,7 @@ const UI = Object.defineProperties(
                                         toggleAble = (anchorWhen || anchorWhenDefault) && !anchorIf,
                                         anchorParent = anchor.parentElement
                                     let startAsActive,
-                                        watcher,
+                                        watcher = {},
                                         anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`,
                                         isDefault = anchorWhenDefault
                                     if (anchorWhen && !anchorIf) {
@@ -1328,12 +1328,12 @@ const UI = Object.defineProperties(
                                                         changeActiveToInactive = !defaultIsActive && 'active' in defaultCase.dataset
                                                     if (changeInactiveToActive || changeActiveToInactive) {
                                                         defaultCase.toggleAttribute('data-active', defaultIsActive)
+                                                        if (typeof watcher?.callback === 'function') watcher.callback(defaultIsActive)
                                                     }
                                                 }
                                             }
                                         })
                                         observer.observe(anchorParent, { attributes: true, subtree: true, attributeFilter: ['data-active'] })
-                                        // watcher = { observer }
                                     }
                                     const labels = { ...anchor.dataset }
                                     return this.createEnvelope({ anchor, labels }).then(envelope =>
@@ -2531,7 +2531,7 @@ const UI = Object.defineProperties(
                                 container.toggleAttribute('data-active', isActive)
                                 isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
                             }
-                            watcher.start()
+                            if (typeof watcher.start === 'function') watcher.start()
                         }
                     } else template.innerHTML = this.template.innerHTML
                     if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
