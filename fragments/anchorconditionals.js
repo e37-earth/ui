@@ -51,7 +51,7 @@ const doComparison = (currentValue, compareWith) => {
             interval,
             checkValue() {
                 const currentValue = getValue(),
-                    isActive = doComparison(currentValue, compareWith)
+                    isActive = compareWith !== true ? doComparison(currentValue, compareWith) : null
                 if (isActive !== this.active) {
                     this.active = isActive
                     this.target.dispatchEvent(new CustomEvent('change', { detail: this.active }))

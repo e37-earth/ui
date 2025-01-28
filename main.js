@@ -1289,21 +1289,21 @@ const UI = Object.defineProperties(
                                 if (anchorBind) this.app._anchorUnitBindings.set(anchor, { unitType, key })
                                 if (anchorUse) {
                                     let toggleAble = false,
-                                        startAsEnabled,
+                                        startAsActive,
                                         watcher,
                                         anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`
                                     if ((anchorWhen || anchorWhenDefault) && !anchorIf) {
                                         toggleAble = true
                                         const metaQuerySelector = `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
                                             containerQuerySelector = `.e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
-                                        startAsEnabled =
-                                            !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-enabled]),${containerQuerySelector}:is([data-enabled])`) ||
+                                        startAsActive =
+                                            !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`) ||
                                             anchorWhenDefault
                                         watcher = await conditional.call(this, anchor, subConditions, anchorWhen || anchorWhenDefault, true)
                                     }
                                     const labels = { ...anchor.dataset }
                                     return this.createEnvelope({ anchor, labels }).then(envelope =>
-                                        unit.use(anchorUse, envelope, toggleAble ? { startAsEnabled, once, watcher, anchorId } : undefined)
+                                        unit.use(anchorUse, envelope, toggleAble ? { startAsActive, once, watcher, anchorId } : undefined)
                                     )
                                 }
                             })
@@ -2477,7 +2477,7 @@ const UI = Object.defineProperties(
                         template = document.createElement('template')
                     let container
                     if (toggleOptions) {
-                        const { startAsEnabled, once, watcher, anchorId } = toggleOptions
+                        const { startAsActive, once, watcher, anchorId } = toggleOptions
                         let containerTag = 'span'
                         for (const n of this.template.content.children) {
                             if (UI.sys.blockLevelTags.has(n.tagName) || (n.tagName === 'META' && n.name.slice(0, 14) === 'e37-ui-snippet')) {
@@ -2491,9 +2491,10 @@ const UI = Object.defineProperties(
                         container.id = anchorId
                         container.name = anchor.name
                         container.dataset.switch = anchor.dataset.switch
-                        if (!startAsEnabled) container.style.setProperty('display', 'none')
+                        if (!startAsActive) container.style.setProperty('display', 'none')
                         watcher.callback = isActive => {
                             const container = document.getElementById(anchorId)
+                            container.dataset.active = isActive
                             isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
                         }
                         watcher.start()
