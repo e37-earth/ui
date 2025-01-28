@@ -1260,6 +1260,8 @@ const UI = Object.defineProperties(
                             anchorIfDefault = 'ifDefault' in anchor.dataset,
                             anchorWhenDefault = 'whenDefault' in anchor.dataset,
                             once = 'once' in anchor.dataset,
+                            useIdle = 'useIdle' in anchor.dataset,
+                            interval = anchor.dataset.interval || undefined,
                             anchorBind = 'bind' in anchor.dataset,
                             anchorConditionals = anchorSwitch ? await this.runFragment('anchorconditionals') : undefined,
                             [condition, ...subConditions] = anchorSwitch ? anchorSwitch.split('.') : [],
@@ -1299,7 +1301,7 @@ const UI = Object.defineProperties(
                                         isDefault = anchorWhenDefault
                                     if (anchorWhen && !anchorIf) {
                                         startAsActive = await conditional.call(this, anchor, subConditions, anchorWhen)
-                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true, anchorId, once)
+                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true, anchorId, once, useIdle, interval)
                                         this.app._anchorWhenWatchers
                                     } else if (anchorWhenDefault && !anchorIf) {
                                         const otherCasesSelector = `${metaQuerySelector}:not([data-when-default]),${containerQuerySelector}:not([data-when-default])`,

@@ -42,7 +42,7 @@ const doComparison = (currentValue, compareWith) => {
                 return compareWithRawTrimmed
         }
     },
-    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = true, once = false, anchorId }) => {
+    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = false, once = false, anchorId }) => {
         const watcher = {
             active: undefined,
             target: new EventTarget(),
@@ -186,12 +186,12 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchor, subConditions, compareWith, getWatcher, anchorId, once = false) => {
+    window: async (anchor, subConditions, compareWith, getWatcher, anchorId, once = false, useIdle = false, interval = 100) => {
         const getValue = () => {
             let currentValue = window
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, interval: 100, useIdle: true, once, anchorId }) : doComparison(getValue(), compareWith)
+        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, interval: 100, useIdle, interval, once, anchorId }) : doComparison(getValue(), compareWith)
     },
 }
