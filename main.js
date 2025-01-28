@@ -1250,40 +1250,40 @@ const UI = Object.defineProperties(
                 }
                 const promises = []
                 anchorBlock: if (element instanceof HTMLMetaElement && element.name.startsWith('e37-ui-')) {
-                    const unitKey = element.content.trim()
-                    let [unitType, asUnitKey] = element.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
+                    let anchor = element
+                    const unitKey = anchor.content.trim()
+                    let [unitType, asUnitKey] = anchor.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
                     unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
-                    const anchor = element
-                    if (unitType in this.sys.unitTypeMap && element.content) {
-                        const { if: anchorIf, when: anchorWhen, switch: anchorSwitch } = element.dataset,
-                            anchorUse = element.dataset.use === '' ? true : element.dataset.use ?? false,
-                            anchorIsDefault = (anchorIf && 'ifDefault' in element.dataset) || (anchorWhen && 'whenDefault' in element.dataset),
-                            anchorOnce = 'once' in element.dataset,
-                            anchorBind = 'bind' in element.dataset
+                    if (unitType in this.sys.unitTypeMap && anchor.content) {
+                        const { if: anchorIf, when: anchorWhen, switch: anchorSwitch } = anchor.dataset,
+                            anchorUse = anchor.dataset.use === '' ? true : anchor.dataset.use ?? false,
+                            anchorIsDefault = (anchorIf && 'ifDefault' in anchor.dataset) || (anchorWhen && 'whenDefault' in anchor.dataset),
+                            anchorOnce = 'once' in anchor.dataset,
+                            anchorBind = 'bind' in anchor.dataset
                         const anchorConditionals = anchorWhen || (anchorIf && !anchorIsDefault) ? await this.runFragment('anchorconditionals') : undefined
-                        ifBlock: if (anchorIf && element.parentElement) {
-                            const switchGroup = element.parentElement.querySelectorAll(
-                                `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
+                        ifBlock: if (anchorIf && anchor.parentElement) {
+                            const switchGroup = anchor.parentElement.querySelectorAll(
+                                `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
                             )
                             if (anchorIsDefault && switchGroup.length === 1) break ifBlock
                             const [condition, ...subConditions] = anchorSwitch.split('.'),
                                 conditional = anchorConditionals[condition]
                             if (!conditional) {
-                                promises.push(Promise.resolve(() => element.remove()))
+                                promises.push(Promise.resolve(() => anchor.remove()))
                                 break anchorBlock
                             }
-                            const conditionIsTrue = await conditional.call(this, element, subConditions, anchorIf)
+                            const conditionIsTrue = await conditional.call(this, anchor, subConditions, anchorIf)
                             if (conditionIsTrue) {
-                                if (switchGroup.length > 1) for (const caseElement of switchGroup) if (caseElement !== element) caseElement.remove()
+                                if (switchGroup.length > 1) for (const caseElement of switchGroup) if (caseElement !== anchor) caseElement.remove()
                             } else {
-                                element.remove()
+                                anchor.remove()
                                 break anchorBlock
                             }
                         }
                         promises.push(
                             this.resolveUnit(unitKey, unitType, asUnitKey, { anchor }, anchorBind).then(async unit => {
                                 const key = asUnitKey || unitKey
-                                if (anchorBind) this.app._anchorUnitBindings.set(element, { unitType, key })
+                                if (anchorBind) this.app._anchorUnitBindings.set(anchor, { unitType, key })
                                 if (anchorUse) {
                                     let toggleAble = false,
                                         currentlyEnabled,
@@ -1291,20 +1291,20 @@ const UI = Object.defineProperties(
                                     if (anchorWhen && !anchorIf) {
                                         const [condition, ...subConditions] = anchorSwitch.split('.')
                                         conditional = anchorConditionals[condition]
-                                        if (!conditional) return promises.push(Promise.resolve(() => element.remove()))
+                                        if (!conditional) return promises.push(Promise.resolve(() => anchor.remove()))
                                         toggleAble = true
-                                        const metaQuerySelector = `meta[name="${element.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
-                                            containerQuerySelector = `.e37-ui-container[name="${element.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
+                                        const metaQuerySelector = `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
+                                            containerQuerySelector = `.e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`
                                         currentlyEnabled =
                                             !!anchor.parentElement.querySelector(`${metaQuerySelector}:is([data-enabled]),${containerQuerySelector}:is([data-enabled])`) ||
                                             anchorIsDefault
                                     }
-                                    const labels = { ...element.dataset }
+                                    const labels = { ...anchor.dataset }
                                     const anchorContainer = this.createEnvelope({ anchor, labels }).then(envelope => unit.use(anchorUse, envelope, toggleAble, currentlyEnabled))
                                     if (toggleAble && anchorContainer && conditional) {
                                         currentlyEnabled = await conditional.call(
                                             this,
-                                            element,
+                                            anchor,
                                             subConditions,
                                             anchorWhen || anchorIsDefault,
                                             toggleAble,
