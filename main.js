@@ -1275,7 +1275,6 @@ const UI = Object.defineProperties(
                                 `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
                             )
                             if (anchorIfDefault && switchGroup.length === 1) break ifBlock
-                            console.log(subConditions)
                             const conditionIsTrue = anchorIf ? await conditional.call(this, { anchor, subConditions, compareWith: anchorIf }) : undefined
                             if (conditionIsTrue) {
                                 if (switchGroup.length > 1) for (const caseElement of switchGroup) if (caseElement !== anchor) caseElement.remove()
