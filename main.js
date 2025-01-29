@@ -1275,7 +1275,8 @@ const UI = Object.defineProperties(
                                 `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
                             )
                             if (anchorIfDefault && switchGroup.length === 1) break ifBlock
-                            const conditionIsTrue = anchorIf ? await conditional.call(this, anchor, subConditions, anchorIf) : undefined
+                            console.log(subConditions)
+                            const conditionIsTrue = anchorIf ? await conditional.call(this, { anchor, subConditions, compareWith: anchorIf }) : undefined
                             if (conditionIsTrue) {
                                 if (switchGroup.length > 1) for (const caseElement of switchGroup) if (caseElement !== anchor) caseElement.remove()
                             } else {
@@ -1300,8 +1301,8 @@ const UI = Object.defineProperties(
                                         anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`,
                                         isDefault = anchorWhenDefault
                                     if (anchorWhen && !anchorIf) {
-                                        startAsActive = await conditional.call(this, anchor, subConditions, anchorWhen)
-                                        watcher = await conditional.call(this, anchor, subConditions, anchorWhen, true, anchorId, once, useIdle, interval)
+                                        startAsActive = await conditional.call(this, { anchor, subConditions, compareWith: anchorWhen })
+                                        watcher = await conditional.call(this, { anchor, subConditions, compareWith: anchorWhen, getWatcher: true, anchorId, useIdle, once, interval })
                                         this.app._anchorWhenWatchers
                                     } else if (anchorWhenDefault && !anchorIf) {
                                         const otherCasesSelector = `${metaQuerySelector}:not([data-when-default]),${containerQuerySelector}:not([data-when-default])`,
@@ -1311,7 +1312,7 @@ const UI = Object.defineProperties(
                                         let areActiveCases = false
                                         for (const c of otherCases) {
                                             if (c === anchor) continue
-                                            areActiveCases ||= await conditional.call(this, c, subConditions, c.dataset.when)
+                                            areActiveCases ||= await conditional.call(this, { anchor: c, subConditions, compareWith: c.dataset.when })
                                             if (areActiveCases) break
                                         }
                                         startAsActive = !areActiveCases

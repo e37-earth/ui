@@ -42,17 +42,17 @@ const doComparison = (currentValue, compareWith) => {
                 return compareWithRawTrimmed
         }
     },
-    createWatcher = async ({ getValue, compareWith, callback, interval = 100, useIdle = false, once = false, anchorId }) => {
+    createWatcher = async ({ getValue, compareWith, callback, interval, useIdle, once, anchorId }) => {
         const watcher = {
             active: undefined,
             target: new EventTarget(),
             callback,
             idleHandle: null,
-            interval,
+            interval: interval ?? 100,
             disabled: undefined,
-            checkValue() {
+            async checkValue() {
                 if (this.disabled) return
-                const isActive = doComparison(getValue(), compareWith)
+                const isActive = doComparison(await getValue(), compareWith)
                 if (isActive !== this.active) {
                     this.active = isActive
                     const container = document.getElementById(anchorId)
@@ -90,23 +90,34 @@ const doComparison = (currentValue, compareWith) => {
     }
 
 export default {
-    E37: async (anchorElement, subConditions, compareWith, getWatcher) => {
-        const getValue = () => {
+    E37: async ({ anchor, subConditions, compareWith, getWatcher, anchorId, useIdle, once, interval }) => {
+        const getValue = async () => {
             let currentValue = { UI: this }
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ getValue, compareWith, interval: 100, useIdle: true }) : doComparison(getValue(), compareWith)
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval, useIdle }) : doComparison(await getValue(), compareWith)
     },
-    dev: async (anchorElement, subConditions, compareWith, whenCallback, once) => !!this.modules.dev === normalizeCompareWith(compareWith || true),
-    location: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
-        let currentValue = document.location
-        for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
-        return doComparison(currentValue, compareWith)
+    dev: async ({ anchor, subConditions, compareWith, getWatcher, anchorId, useIdle, once, interval }) => {
+        const getValue = async () => !!this.modules.dev
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval, useIdle }) : doComparison(await getValue(), compareWith)
     },
-    root: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
-        let currentValue = await this.flatten(anchorElement.getRootNode())
-        for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
+    location: async ({ anchor, subConditions, compareWith, getWatcher, anchorId, useIdle, once, interval }) => {
+        const getValue = async () => {
+            let currentValue = document.location
+            for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
+            return currentValue
+        }
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval, useIdle }) : doComparison(await getValue(), compareWith)
+    },
+    root: async ({ anchor, subConditions, compareWith, getWatcher, anchorId, useIdle, once, interval }) => {
+        const getValue = async () => {
+            let currentValue = await this.flatten(anchorElement.getRootNode())
+            for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
+            return currentValue
+        }
+        return getWatcher ? await createWatcher({ getValue, compareWith, interval, useIdle }) : doComparison(await getValue(), compareWith)
+
         return doComparison(currentValue, compareWith)
     },
     lang: async (anchorElement, subConditions, compareWith, whenCallback, once) => {
@@ -186,12 +197,12 @@ export default {
         for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
         return doComparison(currentValue, compareWith)
     },
-    window: async (anchor, subConditions, compareWith, getWatcher, anchorId, once = false, useIdle = false, interval) => {
-        const getValue = () => {
+    window: async ({ anchor, subConditions, compareWith, getWatcher, anchorId, useIdle, once, interval }) => {
+        const getValue = async () => {
             let currentValue = window
             for (const condition of subConditions) currentValue = currentValue?.[condition.trim()]
             return currentValue
         }
-        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, useIdle, interval, once, anchorId }) : doComparison(getValue(), compareWith)
+        return getWatcher ? await createWatcher({ anchor, getValue, compareWith, useIdle, interval, once, anchorId }) : doComparison(await getValue(), compareWith)
     },
 }
