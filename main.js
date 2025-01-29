@@ -1255,7 +1255,7 @@ const UI = Object.defineProperties(
                     let [unitType, asUnitKey] = anchor.name.slice(7).toLowerCase().trim().split(this.sys.regexp.periodSplitter)
                     unitType = this.sys.unitTypeCollectionNameToUnitTypeMap[unitType] ?? unitType
                     if (unitType in this.sys.unitTypeMap && anchor.content) {
-                        const { if: anchorIf, when: anchorWhen, switch: anchorSwitch } = anchor.dataset,
+                        const { if: anchorIf, when: anchorWhen } = anchor.dataset,
                             anchorUse = anchor.dataset.use === '' ? true : anchor.dataset.use ?? false,
                             anchorIfDefault = 'ifDefault' in anchor.dataset,
                             anchorWhenDefault = 'whenDefault' in anchor.dataset,
@@ -1263,15 +1263,26 @@ const UI = Object.defineProperties(
                             useIdle = 'useIdle' in anchor.dataset,
                             interval = anchor.dataset.interval || undefined,
                             anchorBind = 'bind' in anchor.dataset,
-                            anchorConditionals = anchorSwitch ? await this.runFragment('anchorconditionals') : undefined,
+                            anchorParent = anchor.parentElement,
+                            isIfBlock = (anchorIf || anchorIfDefault) && anchorParent,
+                            toggleAble = (anchorWhen || anchorWhenDefault) && !anchorIf
+                        let { switch: anchorSwitch } = anchor.dataset
+                        if (anchorSwitch === '') anchorSwitch = true
+                        if (anchorSwitch === true) {
+                            if (isIfBlock) anchorSwitch = 'location.pathname'
+                            else if (toggleAble) anchorSwitch = 'location.hash'
+                            // if (typeof anchorSwitch !== 'string') break anchorBlock
+                            anchor.dataset.switch = anchorSwitch
+                        }
+                        const anchorConditionals = anchorSwitch ? await this.runFragment('anchorconditionals') : undefined,
                             [condition, ...subConditions] = anchorSwitch ? anchorSwitch.split('.') : [],
                             conditional = anchorSwitch ? anchorConditionals[condition] : undefined
                         if (anchorSwitch && !conditional) {
                             promises.push(Promise.resolve(() => anchor.remove()))
                             break anchorBlock
                         }
-                        ifBlock: if ((anchorIf || anchorIfDefault) && anchor.parentElement) {
-                            const switchGroup = anchor.parentElement.querySelectorAll(
+                        ifBlock: if (isIfBlock) {
+                            const switchGroup = anchorParent.querySelectorAll(
                                 `meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-if],[data-if-default]):not([data-when])`
                             )
                             if (anchorIfDefault && switchGroup.length === 1) break ifBlock
@@ -1292,9 +1303,7 @@ const UI = Object.defineProperties(
                                 if (anchorUse) {
                                     const metaQuerySelector = `:scope > meta[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is([data-when],[data-when-default]):not([data-if])`,
                                         containerQuerySelector = `:scope > .e37-ui-container[name="${anchor.name}"][data-switch="${anchorSwitch}"]:is(span,div):not(meta)`,
-                                        caseAnchorSelector = `${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`,
-                                        toggleAble = (anchorWhen || anchorWhenDefault) && !anchorIf,
-                                        anchorParent = anchor.parentElement
+                                        caseAnchorSelector = `${metaQuerySelector}:is([data-active]),${containerQuerySelector}:is([data-active])`
                                     let startAsActive,
                                         watcher,
                                         anchorId = anchor.id || `${anchor.name}-${crypto.randomUUID()}`,
