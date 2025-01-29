@@ -5,9 +5,9 @@ export default async function (element) {
         this.app._anchorUnitBindings.delete(element)
         delete this.app[this.sys.unitTypeMap[unitType][0]][key]
     }
-    if (this.app._anchorWhenWatchers.has(element)) {
-        const watcher = this.app._anchorWhenWatchers.get(element)
-        watcher?.observer?.disconnect()
+    const watcher = this.app._anchorWhenWatchers.get(element)
+    if (watcher) {
+        if (typeof watcher?.observer?.disconnect === 'function') watcher?.observer?.disconnect()
         if (typeof watcher?.stop === 'function') watcher.stop()
     }
     if (element.children.length) {
