@@ -783,7 +783,7 @@ const UI = Object.defineProperties(
         },
         resolveUnit: {
             enumerable: true,
-            value: async function (unitKey, unitType, asUnitKey, initParams = {}, bound) {
+            value: async function (unitKey, unitType, asUnitKey, initParams = {}, bound = false) {
                 if (!unitKey || !unitType) return
                 const unitKeyTest = Array.isArray(unitKey) ? 'array' : this.isPlainObject(unitKey) ? 'object' : undefined
                 if (unitKeyTest) {
@@ -2612,7 +2612,7 @@ const UI = Object.defineProperties(
                 async use(input, envelope, toggleOptions) {
                     const { UI, anchor } = await super.use(input, envelope, toggleOptions),
                         template = document.createElement('template')
-                    let container
+                    let container, returnValue
                     if (toggleOptions) {
                         const { startAsActive, watcher, anchorId } = toggleOptions
                         let containerTag = 'span'
@@ -2629,23 +2629,35 @@ const UI = Object.defineProperties(
                         container.id = anchorId
                         await this.toggle(startAsActive, container)
                         if (watcher) watcher.callback = isActive => this.toggle(isActive, anchorId)
+                        returnValue = container
                     } else template.innerHTML = this.template.innerHTML
-                    if (input) {
-                        console.log(input)
+                    if (input && typeof input === 'string') {
+                        const [unitType, unitExpression] = input.includes('|') ? input.split('|') : ['collection', input],
+                            [unitKey, unitUse] = unitExpression.includes(' ') ? unitExpression.split(' ') : [unitExpression]
+                        const useUnit = await UI.resolveUnit(unitKey, unitType)
+                        console.log(useUnit)
                     }
                     const target = anchor.dataset.target
-                    if (!target) await UI.render(anchor ?? document.documentElement, { '::replace': template })
+                    let positionQualifierOrReplace
+                    if (!target) returnValue = await UI.render(anchor ?? document.documentElement, { '::replace': template })
                     else {
                         let [selector, positionQualifier] = target.trim().split('::')
+                        selector = selector.trim()
+                        positionQualifierOrReplace = `::${positionQualifier || 'replace'}`
                         if (selector) {
-                            if (selector && !selector.includes('|')) selector = `*|${selector.trim()}`
-                            await UI.render(anchor ?? document.documentElement, {
-                                [selector.trim()]: { [`::${positionQualifier || 'replace'}`]: template },
+                            if (selector && !selector.includes('|')) selector = `*|${selector}`
+                            returnValue = await UI.render(anchor ?? document.documentElement, {
+                                [selector]: { [positionQualifierOrReplace]: template },
                             })
                         } else
-                            await UI.render(anchor ?? document.documentElement, {
-                                [`::${positionQualifier || 'replace'}`]: template,
+                            returnValue = await UI.render(anchor ?? document.documentElement, {
+                                [positionQualifierOrReplace]: template,
                             })
+                    }
+                    if (!target) return returnValue['::replace']
+                    else {
+                        if (selector) return returnValue[selector][positionQualifierOrReplace]
+                        else return returnValue[positionQualifierOrReplace]
                     }
                 }
                 async toggle(toActive, anchorContainer) {
