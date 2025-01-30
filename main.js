@@ -1,3 +1,41 @@
+const State = class {
+    static E37 = {}
+    static normalize(rawUnit, initParams) {
+        return rawUnit && typeof rawUnit === 'object' ? rawUnit : { name: rawUnit, initialValue: initParams }
+    }
+    name
+    type
+    value
+    eventTarget = new EventTarget()
+    get() {
+        return this.value
+    }
+    set(value, labelMode) {
+        let isSame = this.value === value
+        if (!isSame)
+            try {
+                isSame = JSON.stringify(this.value) === JSON.stringify(value)
+            } catch (e) {}
+        if (isSame) {
+            if (labelMode === 'force') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
+            return this
+        }
+        this.value = value
+        if (labelMode !== 'silent') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
+        return this
+    }
+    constructor({ name, initialValue }) {
+        this.name = name
+        this.value = initialValue
+    }
+    valueOf() {
+        return this.value
+    }
+    toJSON() {
+        return this.valueOf()
+    }
+}
+
 const UI = Object.defineProperties(
     {},
     {
@@ -1059,7 +1097,7 @@ const UI = Object.defineProperties(
                 unitTypeMap: Object.freeze({
                     service: ['services', 'Service'],
                     component: ['components', 'Component'],
-                    collection: ['collection', 'Collection'],
+                    collection: ['collections', 'Collection'],
                     context: ['context', Object],
                     facet: ['facets', 'Facet'],
                     gateway: ['gateways', 'Gateway'],
@@ -1563,6 +1601,17 @@ const UI = Object.defineProperties(
                 }
                 async use(input, envelope, facet, position, options = {}) {
                     return (await this.constructor.E37.UI.runFragment('ai')).use.call(this, input, envelope, options.promptTemplateKey)
+                }
+            },
+        },
+        Cell: {
+            enumerable: true,
+            value: class extends State {
+                constructor({ name, initialValue }) {
+                    const { cells } = UI.app
+                    if (name && cells[name]) return cells[name]
+                    super(name, initialValue)
+                    if (this.name) cells[this.name] ??= this
                 }
             },
         },
@@ -2160,6 +2209,17 @@ const UI = Object.defineProperties(
                 }
             },
         },
+        Field: {
+            enumerable: true,
+            value: class extends State {
+                constructor({ name, initialValue, facet }) {
+                    let fields = facet instanceof UI.Facet ? facet.fields : facet instanceof HTMLElement ? UI.app._facetInstances.get(facet).fields : undefined
+                    if (name && fields[name]) return fields[name]
+                    super(name, initialValue)
+                    if (name && fields) fields[name] ??= this
+                }
+            },
+        },
         Gateway: {
             enumerable: true,
             value: class {
@@ -2569,45 +2629,7 @@ const UI = Object.defineProperties(
                 }
             },
         },
-        State: {
-            value: class {
-                static E37 = {}
-                static normalize(rawUnit, initParams) {
-                    return rawUnit && typeof rawUnit === 'object' ? rawUnit : { name: rawUnit, initialValue: initParams }
-                }
-                name
-                type
-                value
-                eventTarget = new EventTarget()
-                get() {
-                    return this.value
-                }
-                set(value, labelMode) {
-                    let isSame = this.value === value
-                    if (!isSame)
-                        try {
-                            isSame = JSON.stringify(this.value) === JSON.stringify(value)
-                        } catch (e) {}
-                    if (isSame) {
-                        if (labelMode === 'force') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
-                        return this
-                    }
-                    this.value = value
-                    if (labelMode !== 'silent') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
-                    return this
-                }
-                constructor({ name, initialValue }) {
-                    this.name = name
-                    this.value = initialValue
-                }
-                valueOf() {
-                    return this.value
-                }
-                toJSON() {
-                    return this.valueOf()
-                }
-            },
-        },
+        State: { value: State },
         Transformer: {
             enumerable: true,
             value: class {
@@ -2820,30 +2842,6 @@ const UI = Object.defineProperties(
         },
     }
 )
-Object.defineProperties(UI, {
-    Cell: {
-        enumerable: true,
-        value: class extends UI.State {
-            constructor({ name, initialValue }) {
-                const { cells } = UI.app
-                if (name && cells[name]) return cells[name]
-                super(name, initialValue)
-                if (this.name) cells[this.name] ??= this
-            }
-        },
-    },
-    Field: {
-        enumerable: true,
-        value: class extends UI.State {
-            constructor({ name, initialValue, facet }) {
-                let fields = facet instanceof UI.Facet ? facet.fields : facet instanceof HTMLElement ? UI.app._facetInstances.get(facet).fields : undefined
-                if (name && fields[name]) return fields[name]
-                super(name, initialValue)
-                if (name && fields) fields[name] ??= this
-            }
-        },
-    },
-})
 const { app } = UI
 for (const k in UI.env) Object.defineProperty(app, k, { configurable: false, enumerable: true, writable: false, value: {} })
 for (const p in UI)
