@@ -1267,11 +1267,10 @@ const UI = Object.defineProperties(
                             isIfBlock = (anchorIf || anchorIfDefault) && anchorParent,
                             toggleAble = (anchorWhen || anchorWhenDefault) && !anchorIf
                         let { switch: anchorSwitch } = anchor.dataset
-                        if (anchorSwitch === '') anchorSwitch = true
+                        if (!anchorSwitch) if (anchorSwitch === '' || anchorIf || anchorWhen || anchorIfDefault || anchorWhenDefault) anchorSwitch = true
                         if (anchorSwitch === true) {
                             if (isIfBlock) anchorSwitch = 'location.pathname'
                             else if (toggleAble) anchorSwitch = 'location.hash'
-                            // if (typeof anchorSwitch !== 'string') break anchorBlock
                             anchor.dataset.switch = anchorSwitch
                         }
                         const anchorConditionals = anchorSwitch ? await this.runFragment('anchorconditionals') : undefined,
