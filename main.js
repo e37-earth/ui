@@ -715,7 +715,7 @@ const UI = Object.defineProperties(
             enumerable: true,
             value: function (scopeStatement, element) {
                 element = this.app._components.nativesFromVirtuals.get(element) ?? element
-                if (!scopeStatement) return element.parentElement
+                if (!scopeStatement) return element.parentElement ?? element
                 switch (scopeStatement) {
                     case 'body':
                     case 'head':
@@ -2633,9 +2633,9 @@ const UI = Object.defineProperties(
                     } else template.innerHTML = this.template.innerHTML
                     if (input && typeof input === 'string') {
                         const [unitType, unitExpression] = input.includes('|') ? input.split('|') : ['collection', input],
-                            [unitKey, unitUse] = unitExpression.includes(' ') ? unitExpression.split(' ') : [unitExpression]
+                            [unitKey, unitUseInput] = unitExpression.includes(' ') ? unitExpression.split(' ') : [unitExpression]
                         const useUnit = await UI.resolveUnit(unitKey, unitType)
-                        console.log(useUnit)
+                        await UI.render(template.content, await useUnit.use(unitUseInput))
                     }
                     const target = anchor.dataset.target
                     let positionQualifierOrReplace

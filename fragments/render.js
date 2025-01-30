@@ -12,6 +12,7 @@ const voidElementTags = Object.freeze({
     param: 'value',
     source: 'src',
     track: 'src',
+    video: 'src',
     wbr: null,
 })
 
