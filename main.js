@@ -2631,6 +2631,7 @@ const UI = Object.defineProperties(
                         if (watcher) watcher.callback = isActive => this.toggle(isActive, anchorId)
                     } else template.innerHTML = this.template.innerHTML
                     if (input) {
+                        console.log(input)
                     }
                     const target = anchor.dataset.target
                     if (!target) await UI.render(anchor ?? document.documentElement, { '::replace': template })
