@@ -1,40 +1,59 @@
 const State = class {
-    static E37 = {}
-    static normalize(rawUnit, initParams) {
-        return rawUnit && typeof rawUnit === 'object' ? rawUnit : { name: rawUnit, initialValue: initParams }
-    }
-    name
-    type
-    value
-    eventTarget = new EventTarget()
-    get() {
-        return this.value
-    }
-    set(value, labelMode) {
-        let isSame = this.value === value
-        if (!isSame)
-            try {
-                isSame = JSON.stringify(this.value) === JSON.stringify(value)
-            } catch (e) {}
-        if (isSame) {
-            if (labelMode === 'force') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
+        static E37 = {}
+        static normalize(rawUnit, initParams) {
+            return rawUnit && typeof rawUnit === 'object' ? rawUnit : { name: rawUnit, initialValue: initParams }
+        }
+        name
+        type
+        value
+        eventTarget = new EventTarget()
+        get() {
+            return this.value
+        }
+        set(value, labelMode) {
+            let isSame = this.value === value
+            if (!isSame)
+                try {
+                    isSame = JSON.stringify(this.value) === JSON.stringify(value)
+                } catch (e) {}
+            if (isSame) {
+                if (labelMode === 'force') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
+                return this
+            }
+            this.value = value
+            if (labelMode !== 'silent') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
             return this
         }
-        this.value = value
-        if (labelMode !== 'silent') this.eventTarget.dispatchEvent(new CustomEvent('change', { detail: value }))
-        return this
+        constructor({ name, initialValue }) {
+            this.name = name
+            this.value = initialValue
+        }
+        valueOf() {
+            return this.value
+        }
+        toJSON() {
+            return this.valueOf()
+        }
+    },
+    Unit = class {
+        static E37 = {}
+        static normalize(rawUnit, initParams) {
+            return rawUnit
+        }
+        constructor() {
+            this.E37 = this.constructor.E37
+        }
+        async use(input, envelope, toggleOptions) {
+            return { E37: this.constructor.E37, UI: this.constructor.E37.UI, anchor: envelope.anchor }
+        }
+        async run(input, envelope, facet, position, options = {}) {
+            return await this.use(input, envelope)
+        }
+        async toggle(toActive, anchorContainer) {
+            const container = anchorContainer instanceof HTMLElement ? anchorContainer : document.getElementById(anchorContainer)
+            return { enable: !!toActive, container }
+        }
     }
-    constructor({ name, initialValue }) {
-        this.name = name
-        this.value = initialValue
-    }
-    valueOf() {
-        return this.value
-    }
-    toJSON() {
-        return this.valueOf()
-    }
-}
 
 const UI = Object.defineProperties(
     {},
@@ -1689,12 +1708,22 @@ const UI = Object.defineProperties(
         },
         Collection: {
             enumerable: true,
-            value: class {
-                static E37 = {}
-                static normalize(rawUnit, initParams) {}
-                constructor({ service = {}, ai = {} }) {
-                    const { E37 } = this.constructor,
-                        { UI } = E37
+            value: class extends Unit {
+                static normalize(rawUnit, initParams) {
+                    switch (typeof rawUnit) {
+                        case 'function':
+                        case 'string':
+                            return { service: rawUnit }
+                        default:
+                            if (UI.isPlainObject(rawUnit)) {
+                                if ('service' in rawUnit && 'ai' in rawUnit) return rawUnit
+                                else return { service: rawUnit }
+                            }
+                    }
+                }
+                constructor({ service, ai }) {
+                    super()
+                    const { UI } = this.E37
                     switch (typeof service) {
                         case 'function':
                             this.serviceWrapper = service.bind(this)
@@ -1737,7 +1766,7 @@ const UI = Object.defineProperties(
                     this.engine ??= this.serviceWrapper
                 }
                 async use(slug, envelope, facet, position, options = {}) {
-                    return (await this.constructor.E37.UI.runFragment('collection')).use.call(this, slug, envelope, options.langCode)
+                    return (await this.E37.UI.runFragment('collection')).use.call(this, slug, envelope, options.langCode)
                 }
             },
         },
@@ -2406,7 +2435,7 @@ const UI = Object.defineProperties(
                             break
                         case 'object':
                             const validEngine = false
-                            for (const n of validEngineClasses.keys()) if ((validEngine ||= engine instanceof E[n])) break
+                            for (const n of validEngineClasses.keys()) if ((validEngine ||= engine instanceof UI[n])) break
                             if (!validEngine) return
                             break
                         default:
@@ -2565,15 +2594,13 @@ const UI = Object.defineProperties(
         },
         Snippet: {
             enumerable: true,
-            value: class {
-                static E37 = {}
+            value: class extends Unit {
                 static normalize(rawUnit, initParams) {
                     return rawUnit && typeof rawUnit === 'object' ? rawUnit : { template: rawUnit, anchor: initParams?.anchor ?? initParams }
                 }
                 template
                 constructor({ template }) {
-                    const { E37 } = this.constructor,
-                        { UI } = E37
+                    super()
                     if (!Array.isArray(template)) template = [template]
                     this.template = document.createElement('template')
                     for (const t of template) {
@@ -2583,9 +2610,7 @@ const UI = Object.defineProperties(
                     }
                 }
                 async use(input, envelope, toggleOptions) {
-                    const { E37 } = this.constructor,
-                        { UI } = E37,
-                        { anchor } = envelope,
+                    const { UI, anchor } = await super.use(input, envelope, toggleOptions),
                         template = document.createElement('template')
                     let container
                     if (toggleOptions) {
@@ -2605,10 +2630,12 @@ const UI = Object.defineProperties(
                         await this.toggle(startAsActive, container)
                         if (watcher) watcher.callback = isActive => this.toggle(isActive, anchorId)
                     } else template.innerHTML = this.template.innerHTML
-                    if (input === true || input === '') await UI.render(anchor ?? document.documentElement, { '::replace': template })
-                    else if (typeof input != 'string') return
+                    if (input) {
+                    }
+                    const target = anchor.dataset.target
+                    if (!target) await UI.render(anchor ?? document.documentElement, { '::replace': template })
                     else {
-                        let [selector, positionQualifier] = input.trim().split('::')
+                        let [selector, positionQualifier] = target.trim().split('::')
                         if (selector) {
                             if (selector && !selector.includes('|')) selector = `*|${selector.trim()}`
                             await UI.render(anchor ?? document.documentElement, {
@@ -2620,12 +2647,9 @@ const UI = Object.defineProperties(
                             })
                     }
                 }
-                async run(input, envelope, facet, position, options = {}) {
-                    return await this.use(input, envelope)
-                }
-                async toggle(isActive, anchorContainer) {
-                    const container = anchorContainer instanceof HTMLElement ? anchorContainer : document.getElementById(anchorContainer)
-                    isActive ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
+                async toggle(toActive, anchorContainer) {
+                    const { enable, container } = super.toggle(toActive, anchorContainer)
+                    enable ? container.style.removeProperty('display') : container.style.setProperty('display', 'none')
                 }
             },
         },
@@ -2761,6 +2785,7 @@ const UI = Object.defineProperties(
                 }
             },
         },
+        Unit: { value: Unit },
         Validator: {
             enumerable: true,
             value: class {
@@ -2843,10 +2868,8 @@ const UI = Object.defineProperties(
     }
 )
 const { app } = UI
+Unit.E37.UI = UI
 for (const k in UI.env) Object.defineProperty(app, k, { configurable: false, enumerable: true, writable: false, value: {} })
-for (const p in UI)
-    if (typeof UI[p] === 'function' && Function.prototype.toString.call(UI[p]).slice(0, 6) === 'class ')
-        Object.defineProperty(UI[p].E37, 'UI', { configurable: false, writable: false, value: UI })
 const metaUrl = new URL(import.meta.url),
     initializationParameters = metaUrl.searchParams
 if (initializationParameters.has('dev')) await UI.Dev(initializationParameters.get('dev'))
